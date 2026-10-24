@@ -1,21 +1,7 @@
-#ifndef MLP_H_
-#define MLP_H_
+#ifndef ANN_LIB_MLP_H_
+#define ANN_LIB_MLP_H_
 
-#include <stddef.h>
-#include <stdint.h>
-
-// NOTE: layers and its first pointer also need to free.
-struct mlp {
-  float learning_rate;
-  size_t layer_size_count;               // N
-  const size_t *layer_sizes_ref;         // n1, n2...
-  float **layers;                        // input & activated ouput (N)
-  float **output_layers;                 // output (N-1)
-  float **backward_layers;               // passes gradients (N-1)
-  float **weights;                       // weights(N-1)
-  float **biases;                        // bias (N-1)
-  float (**activation_funcs_ref)(float); // activation functions(N-1)
-};
+#include <internal/mlp.h>
 
 // create a mlp.
 // layer_sizes_ref will keep and store in mlp. DO NOT free nor edit
@@ -57,4 +43,4 @@ int mlp_forward(struct mlp *mlp, float const *input, float *output);
 // the MLP(and it's members) and answer cannot be NULL.
 int mlp_backward(struct mlp *mlp, float const *answer);
 
-#endif /* MLP_H_ */
+#endif /* ann_lib_mlp_h_ */
