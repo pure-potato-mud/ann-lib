@@ -29,7 +29,11 @@ echo_result() {
 }
 
 # configure
-cmake -S $PROJ_DIR -B $BUILD_DIR
+if [ "$1" == "--debug" ]; then
+  cmake -S $PROJ_DIR -B $BUILD_DIR
+else
+  cmake -S $PROJ_DIR -B $BUILD_DIR -DCMAKE_BUILD_TYPE=Debug
+fi
 configure_status=$?
 echo_result $configure_status "" "configure failed."
 if [[ $configure_status -ne 0 ]]; then
