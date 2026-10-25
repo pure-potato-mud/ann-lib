@@ -13,46 +13,46 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 
 // free mlp_model safely.
 // NOTE: not include `*_ref`.
-void mlp_destroy_model(struct mlp_model *mlp);
+void mlp_destroy_model(struct mlp_model *model);
 
 // create a cache for learning by reading the data of the mlp_model.
 // NOTE: there is no any link between mlp_model and mlp_learning_cache.
-struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *mlp);
+struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *model);
 
 // free mlp_learning_cache safely.
 void mlp_destroy_learning_cache(struct mlp_learning_cache *cache);
 
 // set learning rate.
 // the MLP cannot be NULL.
-int mlp_set_learning_rate(struct mlp_model *mlp, float learning_rate);
+int mlp_set_learning_rate(struct mlp_model *model, float learning_rate);
 
 // set activation functions reference.
 // size must same as `layer_count - 1` of the MLP.
 // the MLP and the activation functions reference cannot be NULL.
 // activation_fns_ref will keep and store in mlp. DO NOT free nor edit
 // activation_fns_ref before mlp been free.
-int mlp_set_activation_fns_ref(struct mlp_model *mlp,
+int mlp_set_activation_fns_ref(struct mlp_model *model,
                                float (**activation_fns_ref)(float));
 
 // fill all bias with a value.
 // MLP and it's biases cannot be NULL.
-int mlp_fill_biases(struct mlp_model *mlp, float value);
+int mlp_fill_biases(struct mlp_model *model, float value);
 
 // fill all weights with a value.
 // MLP and it's weights field cannot be NULL.
-int mlp_fill_weights(struct mlp_model *mlp, float value);
+int mlp_fill_weights(struct mlp_model *model, float value);
 
 // do forward propagation.
 // the MLP(and it's members) and the input cannot be NULL, but the output can.
 // the output will be fill in values if it is not NULL.
 // function stores data for learning if learning_cache is not NULL.
-int mlp_forward(struct mlp_model *mlp,
+int mlp_forward(struct mlp_model *model,
                 struct mlp_learning_cache *learning_cache, float const *input,
                 float *output);
 
 // do backpropagation.
 // the MLP(and it's members), learning_cache and answer cannot be NULL.
-int mlp_backward(struct mlp_model *mlp,
+int mlp_backward(struct mlp_model *model,
                  struct mlp_learning_cache *learning_cache,
                  float const *answer);
 

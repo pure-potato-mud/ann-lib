@@ -120,13 +120,13 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   return mlp;
 }
 
-void mlp_destroy_model(struct mlp_model *mlp) {
-  if (mlp == NULL) {
+void mlp_destroy_model(struct mlp_model *model) {
+  if (model == NULL) {
     return;
   }
 
-  float **element_ptrs = mlp->buffers;
-  free(mlp);
+  float **element_ptrs = model->buffers;
+  free(model);
   if (element_ptrs == NULL) {
     return;
   }
@@ -140,13 +140,13 @@ void mlp_destroy_model(struct mlp_model *mlp) {
   free(elements);
 }
 
-struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *mlp) {
-  if (mlp == NULL) {
+struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *model) {
+  if (model == NULL) {
     return NULL;
   }
 
-  const size_t layer_size_count = mlp->layer_size_count;
-  const size_t *const layer_sizes = mlp->layer_sizes_ref;
+  const size_t layer_size_count = model->layer_size_count;
+  const size_t *const layer_sizes = model->layer_sizes_ref;
   if (layer_sizes == NULL) {
     return NULL;
   }
@@ -253,73 +253,73 @@ void mlp_destroy_learning_cache(struct mlp_learning_cache *cache) {
   free(elements);
 }
 
-int mlp_set_learning_rate(struct mlp_model *mlp, float learning_rate) {
-  if (mlp == NULL) {
+int mlp_set_learning_rate(struct mlp_model *model, float learning_rate) {
+  if (model == NULL) {
     return 1;
   }
-  mlp->learning_rate = learning_rate;
+  model->learning_rate = learning_rate;
   return 0;
 }
 
-int mlp_set_activation_fns_ref(struct mlp_model *mlp,
+int mlp_set_activation_fns_ref(struct mlp_model *model,
                                float (**activation_fns_ref)(float)) {
-  if (mlp == NULL) {
+  if (model == NULL) {
     return 1;
   }
   if (activation_fns_ref == NULL) {
     return 2;
   }
-  mlp->activation_funcs_ref = activation_fns_ref;
+  model->activation_funcs_ref = activation_fns_ref;
   return 0;
 }
 
-int mlp_fill_biases(struct mlp_model *mlp, const float value) {
-  if (mlp == NULL) {
+int mlp_fill_biases(struct mlp_model *model, const float value) {
+  if (model == NULL) {
     return 1;
   }
   size_t i, j, size;
-  for (i = 0U; i < mlp->layer_size_count - 1U; ++i) {
-    size = mlp->layer_sizes_ref[i + 1U];
-    if (mlp->bias_layers[i] == NULL) {
+  for (i = 0U; i < model->layer_size_count - 1U; ++i) {
+    size = model->layer_sizes_ref[i + 1U];
+    if (model->bias_layers[i] == NULL) {
       return 2;
     }
     for (j = 0U; j < size; ++j) {
-      mlp->bias_layers[i][j] = value;
+      model->bias_layers[i][j] = value;
     }
   }
   return 0;
 }
 
-int mlp_fill_weights(struct mlp_model *mlp, const float value) {
-  if (mlp == NULL) {
+int mlp_fill_weights(struct mlp_model *model, const float value) {
+  if (model == NULL) {
     return 1;
   }
   size_t i, j, size;
-  for (i = 0U; i < mlp->layer_size_count - 1U; ++i) {
-    size = mlp->layer_sizes_ref[i] * mlp->layer_sizes_ref[i + 1U];
-    if (mlp->weight_layers[i] == NULL) {
+  for (i = 0U; i < model->layer_size_count - 1U; ++i) {
+    size = model->layer_sizes_ref[i] * model->layer_sizes_ref[i + 1U];
+    if (model->weight_layers[i] == NULL) {
       return 2;
     }
     for (j = 0U; j < size; ++j) {
-      mlp->weight_layers[i][j] = value;
+      model->weight_layers[i][j] = value;
     }
   }
   return 0;
 }
 
-int mlp_forward(struct mlp_model *mlp,
+int mlp_forward(struct mlp_model *model,
                 struct mlp_learning_cache *learning_cache, float const *input,
                 float *output) {
-  if (mlp == NULL || input == NULL) {
+  if (model == NULL || input == NULL) {
     return 1;
   }
 
-  const size_t max_layer_idx = mlp->layer_size_count - 1U;
-  const size_t *layer_sizes = mlp->layer_sizes_ref;
-  float **const buffers = mlp->buffers;
-  float **const biases = mlp->bias_layers;
-  float **const weights = mlp->weight_layers;
-  float (**activation_funcs_ref)(float) = mlp->activation_funcs_ref;
+  const size_t max_layer_idx = model->layer_size_count - 1U;
+  const size_t *layer_sizes = model->layer_sizes_ref;
+  float **const buffers = model->buffers;
+  float **const biases = model->bias_layers;
+  float **const weights = model->weight_layers;
+  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || buffers == NULL || biases == NULL ||
       weights == NULL || activation_funcs_ref == NULL) {
     return 2;
@@ -403,24 +403,24 @@ int mlp_forward(struct mlp_model *mlp,
   return 0;
 }
 
-int mlp_backward(struct mlp_model *mlp,
+int mlp_backward(struct mlp_model *model,
                  struct mlp_learning_cache *learning_cache,
                  const float *const answer) {
-  if (mlp == NULL || learning_cache == NULL || answer == NULL) {
+  if (model == NULL || learning_cache == NULL || answer == NULL) {
     return 1;
   }
 
-  const float learn_rate = mlp->learning_rate;
-  const size_t layer_size_count = mlp->layer_size_count;
+  const float learn_rate = model->learning_rate;
+  const size_t layer_size_count = model->layer_size_count;
   const size_t last_layer_idx = layer_size_count - 1U;
 
-  const size_t *layer_sizes = mlp->layer_sizes_ref;
+  const size_t *layer_sizes = model->layer_sizes_ref;
   float **const layers = learning_cache->layers;
   float **const raw_output_layers = learning_cache->raw_output_layers;
   float **const gradient_layers = learning_cache->gradient_layers;
-  float **const bias_layers = mlp->bias_layers;
-  float **const weight_layers = mlp->weight_layers;
-  float (**activation_funcs_ref)(float) = mlp->activation_funcs_ref;
+  float **const bias_layers = model->bias_layers;
+  float **const weight_layers = model->weight_layers;
+  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || layers == NULL || raw_output_layers == NULL ||
       gradient_layers == NULL || bias_layers == NULL || weight_layers == NULL ||
       activation_funcs_ref == NULL) {
