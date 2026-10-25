@@ -14,7 +14,7 @@ struct mlp_model {
   float (**activation_funcs_ref)(float); // activation functions(`N-1`)
 };
 
-struct mlp_learning_cache {
+struct mlp_learning_buffer {
   float **layers;            // layers(N)
   float **raw_output_layers; // raw output(N-1)
   float **gradient_layers;   // gradients(N-1)

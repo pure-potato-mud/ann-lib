@@ -140,7 +140,8 @@ void mlp_destroy_model(struct mlp_model *model) {
   free(elements);
 }
 
-struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *model) {
+struct mlp_learning_buffer *
+mlp_create_learning_buffer(struct mlp_model *model) {
   if (model == NULL) {
     return NULL;
   }
@@ -218,28 +219,28 @@ struct mlp_learning_cache *mlp_create_learning_cache(struct mlp_model *model) {
   }
   free(layer_addr_offsets);
 
-  struct mlp_learning_cache *cache =
-      (struct mlp_learning_cache *)malloc(sizeof(struct mlp_learning_cache));
-  if (cache == NULL) {
+  struct mlp_learning_buffer *buffer =
+      (struct mlp_learning_buffer *)malloc(sizeof(struct mlp_learning_buffer));
+  if (buffer == NULL) {
     free(elements);
     free(layers);
     return NULL;
   }
 
-  cache->layers = layers;
-  cache->raw_output_layers = layers + raw_output_offset;
-  cache->gradient_layers = layers + gradiants_offset;
+  buffer->layers = layers;
+  buffer->raw_output_layers = layers + raw_output_offset;
+  buffer->gradient_layers = layers + gradiants_offset;
 
-  return cache;
+  return buffer;
 }
 
-void mlp_destroy_learning_cache(struct mlp_learning_cache *cache) {
-  if (cache == NULL) {
+void mlp_destroy_learning_buffer(struct mlp_learning_buffer *buffer) {
+  if (buffer == NULL) {
     return;
   }
 
-  float **layers = cache->layers;
-  free(cache);
+  float **layers = buffer->layers;
+  free(buffer);
   if (layers == NULL) {
     return;
   }
@@ -308,7 +309,7 @@ int mlp_fill_weights(struct mlp_model *model, const float value) {
 }
 
 int mlp_forward(struct mlp_model *model,
-                struct mlp_learning_cache *learning_cache, float const *input,
+                struct mlp_learning_buffer *learning_buffer, float const *input,
                 float *output) {
   if (model == NULL || input == NULL) {
     return 1;
@@ -331,25 +332,25 @@ int mlp_forward(struct mlp_model *model,
 
   size_t i, j, k;
   float **layers = NULL, **raw_output_layers = NULL;
-  if (learning_cache != NULL) {
-    layers = learning_cache->layers;
-    raw_output_layers = learning_cache->raw_output_layers;
+  if (learning_buffer != NULL) {
+    layers = learning_buffer->layers;
+    raw_output_layers = learning_buffer->raw_output_layers;
   }
   if (layers != NULL && raw_output_layers != NULL) {
     for (i = 0U; i < max_layer_idx; ++i) {
       if (layers[i] == NULL || raw_output_layers[i] == NULL) {
-        learning_cache = NULL;
+        learning_buffer = NULL;
       }
     }
     if (layers[max_layer_idx] == NULL) {
-      learning_cache = NULL;
+      learning_buffer = NULL;
     }
   }
 
   for (i = 0U; i < layer_sizes[0U]; ++i) {
     input_layer[i] = input[i];
   }
-  if (learning_cache != NULL) {
+  if (learning_buffer != NULL) {
     for (i = 0U; i < layer_sizes[0U]; ++i) {
       layers[0][i] = input[i];
     }
@@ -382,13 +383,13 @@ int mlp_forward(struct mlp_model *model,
       for (k = 0U; k < back_layer_size; ++k) {
         next_layer[j] += weight[j_idx + k] * current_layer[k];
       }
-      if (learning_cache != NULL) {
+      if (learning_buffer != NULL) {
         raw_output_layers[i][j] = next_layer[j];
       }
 
       next_layer[j] = activation_function(next_layer[j]);
     }
-    if (learning_cache != NULL) {
+    if (learning_buffer != NULL) {
       for (j = 0U; j < front_layer_size; ++j) {
         layers[i + 1U][j] = next_layer[j];
       }
@@ -404,9 +405,9 @@ int mlp_forward(struct mlp_model *model,
 }
 
 int mlp_backward(struct mlp_model *model,
-                 struct mlp_learning_cache *learning_cache,
+                 struct mlp_learning_buffer *learning_buffer,
                  const float *const answer) {
-  if (model == NULL || learning_cache == NULL || answer == NULL) {
+  if (model == NULL || learning_buffer == NULL || answer == NULL) {
     return 1;
   }
 
@@ -415,9 +416,9 @@ int mlp_backward(struct mlp_model *model,
   const size_t last_layer_idx = layer_size_count - 1U;
 
   const size_t *layer_sizes = model->layer_sizes_ref;
-  float **const layers = learning_cache->layers;
-  float **const raw_output_layers = learning_cache->raw_output_layers;
-  float **const gradient_layers = learning_cache->gradient_layers;
+  float **const layers = learning_buffer->layers;
+  float **const raw_output_layers = learning_buffer->raw_output_layers;
+  float **const gradient_layers = learning_buffer->gradient_layers;
   float **const bias_layers = model->bias_layers;
   float **const weight_layers = model->weight_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
