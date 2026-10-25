@@ -46,8 +46,8 @@ int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      size_t *current_size);
 
 struct addr_idx_offsets *
-gradiant_buffer_get_idx_offsets(size_t layer_size_count);
-int gradiant_buffer_get_current_size(size_t i, const size_t *layer_sizes,
+gradient_buffer_get_idx_offsets(size_t layer_size_count);
+int gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size);
 

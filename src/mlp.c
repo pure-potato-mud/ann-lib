@@ -111,8 +111,8 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   const size_t layer_size_count = model->layer_size_count;
   const size_t *const layer_sizes_ref = model->layer_sizes_ref;
 
-  const struct creation_functions funcs = {backward_buffer_get_idx_offsets,
-                                           backward_buffer_get_current_size};
+  const struct creation_functions funcs = {gradient_buffer_get_idx_offsets,
+                                           gradient_buffer_get_current_size};
   const struct layer_size_data layer_size_data = {layer_sizes_ref,
                                                   layer_size_count};
   struct double_layer *dl =
