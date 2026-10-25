@@ -1,7 +1,11 @@
 #ifndef ANN_LIB_MLP_H_
 #define ANN_LIB_MLP_H_
 
-#include <internal/mlp.h>
+#include <stddef.h>
+
+struct mlp_model;
+struct mlp_backward_buffer;
+struct mlp_gradient_buffer;
 
 // create a mlp.
 // layer_sizes_ref will keep and store in mlp. DO NOT free nor edit

@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <internal/mlp.h>
 #include <internal/mlp_creation.h>
-#include <mlp.h>
 
 // WARN: mlp will store pointer layer_sizes, so DO NOT free it before mlp been
 // free.

@@ -2,7 +2,7 @@
 
 #include <unity.h>
 
-#include <ann-lib/mlp.h>
+#include <internal/mlp.h>
 
 static float leaky_relu(float value) {
   return (value > 0) ? value : value * 0.03125f;

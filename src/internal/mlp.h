@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include <ann-lib/mlp.h>
+
 // NOTE: layers and its first pointer also need to free.
 struct mlp_model {
   float learning_rate;
