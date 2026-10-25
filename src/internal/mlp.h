@@ -1,5 +1,5 @@
-#ifndef MLP_INTERNAL_H_
-#define MLP_INTERNAL_H_
+#ifndef INTERNAL_MLP_H_
+#define INTERNAL_MLP_H_
 
 #include <stddef.h>
 
@@ -23,4 +23,4 @@ struct mlp_gradient_buffer {
   float **gradient_layers; // gradients(N-1)
 };
 
-#endif /* MLP_INTERNAL_H_ */
+#endif /* INTERNAL_MLP_H_ */

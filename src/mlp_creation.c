@@ -1,0 +1,263 @@
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <internal/mlp_creation.h>
+
+void destory_addr_idx_offsets(struct addr_idx_offsets *offsets) {
+  if (offsets == NULL) { return; }
+
+  size_t *data = offsets->data;
+  free(offsets);
+  if (data == NULL) { return; }
+
+  free(data);
+}
+
+struct double_layer *
+create_double_layer(bool has_extra_double_buffers,
+                    const struct creation_functions *funcs,
+                    const struct layer_size_data *layer_size) {
+  if (funcs == NULL || layer_size == NULL) { return NULL; }
+  struct addr_idx_offsets *(*const get_idx_offsets)(size_t) =
+      funcs->get_idx_offsets;
+  int (*const get_current_size)(size_t, const size_t *, const size_t *,
+                                size_t *) = funcs->get_current_size;
+  if (get_idx_offsets == NULL || get_current_size == NULL) { return NULL; }
+  const size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
+  const size_t layer_size_count = layer_size->layer_size_count;
+  if (layer_sizes_ref == NULL || layer_size_count < 2U) { return NULL; }
+
+  // allocate elements_ptrs and addr offsets
+  // need layer_full_size and layer_offsets
+  struct addr_idx_offsets *idx_offsets_obj = get_idx_offsets(layer_size_count);
+  if (idx_offsets_obj == NULL) { return NULL; }
+  const size_t idx_offsets_size = idx_offsets_obj->size;
+  const size_t *idx_offsets = idx_offsets_obj->data;
+  if (idx_offsets_size < 1U) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    return NULL;
+  }
+  if (idx_offsets == NULL) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    return NULL;
+  }
+  const size_t layer_full_size = idx_offsets[0U];
+  if (SIZE_MAX / sizeof(size_t) < layer_full_size ||
+      SIZE_MAX / sizeof(float *) < layer_full_size) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    return NULL;
+  }
+  size_t *addr_offsets = (size_t *)malloc(layer_full_size * sizeof(size_t));
+  if (addr_offsets == NULL) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    return NULL;
+  }
+  float **element_addrs = (float **)malloc(layer_full_size * sizeof(float *));
+  if (element_addrs == NULL) {
+    free(addr_offsets);
+    destory_addr_idx_offsets(idx_offsets_obj);
+    return NULL;
+  }
+
+  // compute addr offsets
+  // using layer_full_size and layer_offsets
+  // optional: calculate max_layer_size, and adjust offset_sum
+  size_t i, offset_sum = 0, current_size;
+  int result;
+  for (i = 0; i < layer_full_size; ++i) {
+    result = get_current_size(i, layer_sizes_ref, idx_offsets, &current_size);
+
+    if (SIZE_MAX - current_size < offset_sum || result != 0) {
+      destory_addr_idx_offsets(idx_offsets_obj);
+      free(addr_offsets);
+      free(element_addrs);
+      return NULL;
+    }
+    // get address offset
+    addr_offsets[i] = offset_sum;
+    offset_sum += current_size;
+  }
+
+  // TODO: enable if max_layer_size needed
+  size_t max_layer_size = layer_sizes_ref[0U];
+  if (max_layer_size == 0) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    free(addr_offsets);
+    free(element_addrs);
+    return NULL;
+  }
+  for (i = 0; i < layer_size_count; ++i) {
+    if (max_layer_size < layer_sizes_ref[i]) {
+      max_layer_size = layer_sizes_ref[i];
+    }
+  }
+
+  // deal with max_layer_size
+  if (has_extra_double_buffers) {
+    if (SIZE_MAX - 2U * max_layer_size < offset_sum) {
+      destory_addr_idx_offsets(idx_offsets_obj);
+      free(addr_offsets);
+      free(element_addrs);
+      return NULL;
+    }
+    offset_sum += 2U * max_layer_size;
+  }
+
+  // allocate elements
+
+  if (SIZE_MAX / sizeof(float) < offset_sum) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    free(addr_offsets);
+    free(element_addrs);
+    return NULL;
+  }
+  float *elements = (float *)malloc(offset_sum * sizeof(float));
+  if (elements == NULL) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    free(addr_offsets);
+    free(element_addrs);
+    return NULL;
+  }
+
+  // apply elements addr to elements_ptrs
+  if (has_extra_double_buffers) {
+    element_addrs[0U] = elements;
+    element_addrs[1U] = elements + max_layer_size;
+    for (i = idx_offsets[1]; i < layer_full_size; ++i) {
+      element_addrs[i] = elements + addr_offsets[i] + 2U * max_layer_size;
+    }
+  } else {
+    for (i = 0U; i < layer_full_size; ++i) {
+      element_addrs[i] = elements + addr_offsets[i];
+    }
+  }
+  free(addr_offsets);
+
+  // return idx_offsets
+  struct double_layer *ret =
+      (struct double_layer *)malloc(sizeof(struct double_layer));
+  if (ret == NULL) {
+    destory_addr_idx_offsets(idx_offsets_obj);
+    free(elements);
+    free(element_addrs);
+    return NULL;
+  }
+
+  ret->element_addrs = element_addrs;
+  ret->elements = elements;
+  ret->idx_offsets = idx_offsets_obj;
+
+  return ret;
+}
+
+void destory_double_layer(struct double_layer *obj) {
+  if (obj == NULL) { return; }
+
+  if (obj->element_addrs != NULL) { free(obj->element_addrs); }
+  if (obj->elements != NULL) { free(obj->elements); }
+  free(obj);
+}
+
+struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
+  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
+  const size_t layer_full_size = layer_size_count * 2U;
+
+  size_t *data = (size_t *)malloc(sizeof(size_t));
+  if (data == NULL) { return NULL; }
+  data[0U] = layer_full_size;
+  data[1U] = 2U;
+  data[2U] = layer_size_count + 1U;
+
+  struct addr_idx_offsets *ret =
+      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  if (ret == NULL) { return NULL; }
+
+  ret->data = data;
+  ret->size = 3U;
+
+  return ret;
+}
+
+int model_get_current_size(size_t i, const size_t *layer_sizes,
+                           const size_t *idx_offsets, size_t *current_size) {
+  const size_t weight_offset = idx_offsets[1U], bias_offset = idx_offsets[2U];
+  size_t current_layer_idx, current_neruon_count;
+  if (i < weight_offset) {
+    *current_size = 0;
+  } else if (i < bias_offset) { // offsets for weights
+    current_layer_idx = i - weight_offset + 1U;
+    current_neruon_count = layer_sizes[current_layer_idx];
+    // zero neuron test and multification overflow test
+    if (current_neruon_count == 0U ||
+        SIZE_MAX / current_neruon_count < layer_sizes[current_layer_idx - 1U]) {
+      return 1;
+      /* free(parameter_addr_offsets);
+      free(element_ptrs);
+      return NULL; */
+    }
+    *current_size = current_neruon_count * layer_sizes[current_layer_idx - 1U];
+  } else { // offsets for bias
+    *current_size = layer_sizes[i - bias_offset + 1U];
+  }
+  return 0;
+}
+
+struct addr_idx_offsets *
+learning_buffer_get_idx_offsets(size_t layer_size_count) {
+  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
+  const size_t layer_full_size = layer_size_count * 2U - 1U;
+
+  size_t *data = (size_t *)malloc(sizeof(size_t));
+  if (data == NULL) { return NULL; }
+  data[0U] = layer_full_size;
+  data[1U] = layer_size_count;
+
+  struct addr_idx_offsets *ret =
+      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  if (ret == NULL) { return NULL; }
+
+  ret->data = data;
+  ret->size = 3U;
+
+  return ret;
+}
+
+int learning_buffer_get_current_size(size_t i, const size_t *layer_sizes,
+                                     const size_t *idx_offsets,
+                                     size_t *current_size) {
+  size_t raw_output_offset = idx_offsets[1U];
+  if (i < raw_output_offset) {
+    *current_size = layer_sizes[i];
+    if (current_size == 0) { return 1; }
+  } else {
+    *current_size = layer_sizes[i - raw_output_offset + 1U];
+  }
+  return 0;
+}
+
+struct addr_idx_offsets *
+gradient_buffer_get_idx_offsets(size_t layer_size_count) {
+  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
+  const size_t layer_full_size = layer_size_count - 1U;
+
+  size_t *data = (size_t *)malloc(sizeof(size_t));
+  if (data == NULL) { return NULL; }
+  data[0U] = layer_full_size;
+
+  struct addr_idx_offsets *ret =
+      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  if (ret == NULL) { return NULL; }
+
+  ret->data = data;
+  ret->size = 3U;
+
+  return ret;
+}
+
+int gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
+                                     const size_t *idx_offsets,
+                                     size_t *current_size) {
+  *current_size = layer_sizes[i + 1U];
+  if (current_size == 0) { return 1; }
+  return 0;
+}
