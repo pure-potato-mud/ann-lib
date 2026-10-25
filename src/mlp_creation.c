@@ -203,7 +203,7 @@ int model_get_current_size(size_t i, const size_t *layer_sizes,
 }
 
 struct addr_idx_offsets *
-learning_buffer_get_idx_offsets(size_t layer_size_count) {
+backward_buffer_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U - 1U;
 
@@ -222,7 +222,7 @@ learning_buffer_get_idx_offsets(size_t layer_size_count) {
   return ret;
 }
 
-int learning_buffer_get_current_size(size_t i, const size_t *layer_sizes,
+int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size) {
   size_t raw_output_offset = idx_offsets[1U];

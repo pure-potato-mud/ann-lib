@@ -40,8 +40,8 @@ int model_get_current_size(size_t i, const size_t *layer_sizes,
                            const size_t *idx_offsets, size_t *current_size);
 
 struct addr_idx_offsets *
-learning_buffer_get_idx_offsets(size_t layer_size_count);
-int learning_buffer_get_current_size(size_t i, const size_t *layer_sizes,
+backward_buffer_get_idx_offsets(size_t layer_size_count);
+int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size);
 
