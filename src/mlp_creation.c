@@ -83,7 +83,6 @@ create_double_layer(bool has_extra_double_buffers,
     offset_sum += current_size;
   }
 
-  // TODO: enable if max_layer_size needed
   size_t max_layer_size = layer_sizes_ref[0U];
   if (max_layer_size == 0) {
     destory_addr_idx_offsets(idx_offsets_obj);
@@ -99,7 +98,7 @@ create_double_layer(bool has_extra_double_buffers,
 
   // deal with max_layer_size
   if (has_extra_double_buffers) {
-    if (SIZE_MAX - 2U * max_layer_size < offset_sum) {
+    if ((SIZE_MAX - offset_sum) / 2U < max_layer_size) {
       destory_addr_idx_offsets(idx_offsets_obj);
       free(addr_offsets);
       free(element_addrs);
