@@ -22,6 +22,13 @@ struct mlp_learning_buffer *mlp_create_learning_buffer(struct mlp_model *model);
 // free mlp_learning_buffer safely.
 void mlp_destroy_learning_buffer(struct mlp_learning_buffer *buffer);
 
+// create a buffer for store gradient compute result.
+// NOTE: there is no any link between mlp_model and mlp_gradient_buffer.
+struct mlp_gradient_buffer *mlp_create_gradient_buffer(struct mlp_model *model);
+
+// free mlp_gradient_buffer safely.
+void mlp_destroy_gradient_buffer(struct mlp_gradient_buffer *buffer);
+
 // set learning rate.
 // the MLP cannot be NULL.
 int mlp_set_learning_rate(struct mlp_model *model, float learning_rate);
@@ -54,6 +61,7 @@ int mlp_forward(struct mlp_model *model,
 // the MLP(and it's members), learning_buffer and answer cannot be NULL.
 int mlp_backward(struct mlp_model *model,
                  struct mlp_learning_buffer *learning_buffer,
+                 struct mlp_gradient_buffer *gradient_output,
                  float const *answer);
 
 #endif /* ann_lib_mlp_h_ */

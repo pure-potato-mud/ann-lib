@@ -1,3 +1,4 @@
+#include "internal/mlp.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -152,15 +153,14 @@ mlp_create_learning_buffer(struct mlp_model *model) {
     return NULL;
   }
 
-  if ((SIZE_MAX - 1U) / 3U + 1U < layer_size_count) {
+  if ((SIZE_MAX - 1U) / 2U + 1U < layer_size_count) {
     return NULL;
   }
-  const size_t layer_full_size = layer_size_count * 3U - 2U;
+  const size_t layer_full_size = layer_size_count * 2U - 1U;
 
   if (SIZE_MAX / sizeof(size_t) < layer_full_size) {
     return NULL;
   }
-
   size_t *layer_addr_offsets =
       (size_t *)malloc(layer_full_size * sizeof(size_t));
   if (layer_addr_offsets == NULL) {
@@ -168,7 +168,6 @@ mlp_create_learning_buffer(struct mlp_model *model) {
   }
 
   const size_t raw_output_offset = layer_size_count;
-  const size_t gradiants_offset = layer_size_count * 2U - 1U;
   size_t i, current_size, offset_sum = 0U;
   for (i = 0U; i < layer_full_size; ++i) {
 
@@ -178,10 +177,8 @@ mlp_create_learning_buffer(struct mlp_model *model) {
         free(layer_addr_offsets);
         return NULL;
       }
-    } else if (i < gradiants_offset) {
-      current_size = layer_sizes[i - raw_output_offset + 1U];
     } else {
-      current_size = layer_sizes[i - gradiants_offset + 1U];
+      current_size = layer_sizes[i - raw_output_offset + 1U];
     }
 
     if (SIZE_MAX - current_size < offset_sum) {
@@ -229,7 +226,6 @@ mlp_create_learning_buffer(struct mlp_model *model) {
 
   buffer->layers = layers;
   buffer->raw_output_layers = layers + raw_output_offset;
-  buffer->gradient_layers = layers + gradiants_offset;
 
   return buffer;
 }
@@ -252,6 +248,103 @@ void mlp_destroy_learning_buffer(struct mlp_learning_buffer *buffer) {
   }
 
   free(elements);
+}
+
+struct mlp_gradient_buffer *
+mlp_create_gradient_buffer(struct mlp_model *model) {
+  if (model == NULL) {
+    return NULL;
+  }
+
+  const size_t layer_size_count = model->layer_size_count;
+  const size_t *const layer_sizes = model->layer_sizes_ref;
+  if (layer_sizes == NULL) {
+    return NULL;
+  }
+
+  if (layer_size_count < 2U) {
+    return NULL;
+  }
+  const size_t layer_full_size = layer_size_count - 1U;
+
+  if (SIZE_MAX / sizeof(size_t) < layer_full_size) {
+    return NULL;
+  }
+  size_t *layer_addr_offsets =
+      (size_t *)malloc(layer_full_size * sizeof(size_t));
+  if (layer_addr_offsets == NULL) {
+    return NULL;
+  }
+
+  size_t i, current_size, offset_sum = 0U;
+  for (i = 0U; i < layer_full_size; ++i) {
+    current_size = layer_sizes[i + 1U];
+    if (current_size == 0) {
+      free(layer_addr_offsets);
+      return NULL;
+    }
+    layer_addr_offsets[i] = offset_sum;
+    offset_sum += current_size;
+  }
+
+  if (SIZE_MAX / sizeof(float *) < layer_full_size) {
+    free(layer_addr_offsets);
+    return NULL;
+  }
+  float **layers = (float **)malloc(layer_full_size * sizeof(float *));
+  if (layers == NULL) {
+    free(layer_addr_offsets);
+    return NULL;
+  }
+
+  if (SIZE_MAX / sizeof(float) < offset_sum) {
+    free(layer_addr_offsets);
+    free(layers);
+    return NULL;
+  }
+  float *elements = (float *)malloc(offset_sum * sizeof(float));
+  if (elements == NULL) {
+    free(layer_addr_offsets);
+    free(layers);
+    return NULL;
+  }
+
+  for (i = 0; i < layer_full_size; ++i) {
+    layers[i] = elements + layer_addr_offsets[i];
+  }
+  free(layer_addr_offsets);
+
+  struct mlp_gradient_buffer *buffer =
+      (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
+  if (buffer == NULL) {
+    free(elements);
+    free(layers);
+    return NULL;
+  }
+
+  buffer->gradient_layers = layers;
+
+  return buffer;
+}
+
+void mlp_destroy_gradient_buffer(struct mlp_gradient_buffer *buffer) {
+  if (buffer == NULL) {
+    return;
+  }
+
+  float **gradient_layers = buffer->gradient_layers;
+  free(buffer);
+  if (gradient_layers == NULL) {
+    return;
+  }
+
+  float *gradients = gradient_layers[0U];
+  free(gradient_layers);
+  if (gradients == NULL) {
+    return;
+  }
+
+  free(gradients);
 }
 
 int mlp_set_learning_rate(struct mlp_model *model, float learning_rate) {
@@ -406,8 +499,10 @@ int mlp_forward(struct mlp_model *model,
 
 int mlp_backward(struct mlp_model *model,
                  struct mlp_learning_buffer *learning_buffer,
+                 struct mlp_gradient_buffer *gradient_output,
                  const float *const answer) {
-  if (model == NULL || learning_buffer == NULL || answer == NULL) {
+  if (model == NULL || learning_buffer == NULL || gradient_output == NULL ||
+      answer == NULL) {
     return 1;
   }
 
@@ -418,7 +513,7 @@ int mlp_backward(struct mlp_model *model,
   const size_t *layer_sizes = model->layer_sizes_ref;
   float **const layers = learning_buffer->layers;
   float **const raw_output_layers = learning_buffer->raw_output_layers;
-  float **const gradient_layers = learning_buffer->gradient_layers;
+  float **const gradient_layers = gradient_output->gradient_layers;
   float **const bias_layers = model->bias_layers;
   float **const weight_layers = model->weight_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;

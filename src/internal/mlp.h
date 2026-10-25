@@ -17,7 +17,10 @@ struct mlp_model {
 struct mlp_learning_buffer {
   float **layers;            // layers(N)
   float **raw_output_layers; // raw output(N-1)
-  float **gradient_layers;   // gradients(N-1)
+};
+
+struct mlp_gradient_buffer {
+  float **gradient_layers; // gradients(N-1)
 };
 
 #endif /* MLP_INTERNAL_H_ */
