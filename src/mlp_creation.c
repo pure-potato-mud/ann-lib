@@ -66,8 +66,13 @@ create_double_layer(bool has_extra_double_buffers,
   int result;
   for (i = 0; i < layer_full_size; ++i) {
     result = get_current_size(i, layer_sizes_ref, idx_offsets, &current_size);
-
-    if (SIZE_MAX - current_size < offset_sum || result != 0) {
+    if (result != 0) {
+      destory_addr_idx_offsets(idx_offsets_obj);
+      free(addr_offsets);
+      free(element_addrs);
+      return NULL;
+    }
+    if (SIZE_MAX - current_size < offset_sum) {
       destory_addr_idx_offsets(idx_offsets_obj);
       free(addr_offsets);
       free(element_addrs);
