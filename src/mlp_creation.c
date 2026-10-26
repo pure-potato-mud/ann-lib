@@ -239,7 +239,7 @@ int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
   size_t raw_output_offset = idx_offsets[1U];
   if (i < raw_output_offset) {
     *current_size = layer_sizes[i];
-    if (current_size == 0) { return 1; }
+    if (*current_size == 0U) { return 1; }
   } else {
     *current_size = layer_sizes[i - raw_output_offset + 1U];
   }
@@ -272,6 +272,6 @@ int gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size) {
   *current_size = layer_sizes[i + 1U];
-  if (current_size == 0) { return 1; }
+  if (*current_size == 0U) { return 1; }
   return 0;
 }
