@@ -5,8 +5,8 @@
 #include <stddef.h>
 
 struct layer_size_data {
-  const size_t *const layer_sizes_ref;
-  const size_t layer_size_count;
+  const size_t *layer_sizes_ref;
+  size_t layer_size_count;
 };
 
 struct addr_idx_offsets {
@@ -15,7 +15,7 @@ struct addr_idx_offsets {
 };
 
 struct double_layer {
-  float **element_addrs;
+  float **element_ptrs;
   float *elements;
   struct addr_idx_offsets *idx_offsets;
 };

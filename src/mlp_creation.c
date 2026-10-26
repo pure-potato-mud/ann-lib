@@ -147,7 +147,7 @@ create_double_layer(bool has_extra_double_buffers,
     return NULL;
   }
 
-  ret->element_addrs = element_addrs;
+  ret->element_ptrs = element_addrs;
   ret->elements = elements;
   ret->idx_offsets = idx_offsets_obj;
 
@@ -157,7 +157,7 @@ create_double_layer(bool has_extra_double_buffers,
 void destory_double_layer(struct double_layer *obj) {
   if (obj == NULL) { return; }
 
-  if (obj->element_addrs != NULL) { free(obj->element_addrs); }
+  if (obj->element_ptrs != NULL) { free(obj->element_ptrs); }
   if (obj->elements != NULL) { free(obj->elements); }
   if (obj->idx_offsets != NULL) { destory_addr_idx_offsets(obj->idx_offsets); }
   free(obj);

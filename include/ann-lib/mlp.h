@@ -20,14 +20,16 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 void mlp_destroy_model(struct mlp_model *model);
 
 // create a buffer for learning by reading the data of the mlp_model.
-// NOTE: there is no any link between mlp_model and mlp_backward_buffer.
+// NOTE: the buffer will store same layer_sizes_ref as model stores, so DO NOT
+// free nor edit layer_sizes_ref before backward_buffer be freed.
 struct mlp_backward_buffer *mlp_create_backward_buffer(struct mlp_model *model);
 
 // free mlp_backward_buffer safely.
 void mlp_destroy_backward_buffer(struct mlp_backward_buffer *buffer);
 
 // create a buffer for store gradient compute result.
-// NOTE: there is no any link between mlp_model and mlp_gradient_buffer.
+// NOTE: the buffer will store same layer_sizes_ref as model stores, so DO NOT
+// free nor edit layer_sizes_ref before gradient_buffer be freed.
 struct mlp_gradient_buffer *mlp_create_gradient_buffer(struct mlp_model *model);
 
 // free mlp_gradient_buffer safely.

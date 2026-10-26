@@ -5,6 +5,23 @@
 #include <internal/mlp.h>
 #include <internal/mlp_creation.h>
 
+void mlp_destroy_content_of_layer_data(struct mlp_layer_data *layer_data) {
+  if (layer_data == NULL) { return; }
+  if (layer_data->elements != NULL) { free(layer_data->elements); }
+  if (layer_data->element_ptrs != NULL) { free(layer_data->element_ptrs); }
+}
+
+// compare two metadata.
+// return true any one is NULL.
+// and check content, false if layer_size_count and layer_sizes_ref are both
+// same.
+bool is_metadata_not_same(struct mlp_layer_metadata *a,
+                          struct mlp_layer_metadata *b) {
+  if (a == NULL || b == NULL) { return false; }
+  return (a->layer_size_count != b->layer_size_count) ||
+         (a->layer_sizes_ref != b->layer_sizes_ref);
+}
+
 // WARN: mlp will store pointer layer_sizes, so DO NOT free it before mlp been
 // free.
 struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
@@ -15,11 +32,11 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
                                                   layer_size_count};
   struct double_layer *dl = create_double_layer(true, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_addrs == NULL || dl->elements == NULL) {
+  if (dl->element_ptrs == NULL || dl->elements == NULL) {
     destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_addrs;
+  float **element_addrs = dl->element_ptrs;
 
   struct mlp_model *mlp = (struct mlp_model *)malloc(sizeof(struct mlp_model));
   if (mlp == NULL) {
@@ -27,8 +44,11 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
     return NULL;
   }
 
-  mlp->layer_size_count = layer_size_count;
-  mlp->layer_sizes_ref = layer_sizes_ref;
+  mlp->layer_metadata.layer_size_count = layer_size_count;
+  mlp->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  mlp->layer_data.element_ptrs = dl->element_ptrs;
+  mlp->layer_data.elements = dl->elements;
+
   mlp->buffers = element_addrs;
   mlp->weight_layers = element_addrs + dl->idx_offsets->data[1];
   mlp->bias_layers = element_addrs + dl->idx_offsets->data[2];
@@ -38,7 +58,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp_fill_biases(mlp, 0.0f);
   mlp_fill_weights(mlp, 0.0f);
 
-  dl->element_addrs = NULL;
+  dl->element_ptrs = NULL;
   dl->elements = NULL;
   destory_double_layer(dl);
   return mlp;
@@ -47,23 +67,16 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 void mlp_destroy_model(struct mlp_model *model) {
   if (model == NULL) { return; }
 
-  float **element_ptrs = model->buffers;
+  mlp_destroy_content_of_layer_data(&model->layer_data);
   free(model);
-  if (element_ptrs == NULL) { return; }
-
-  float *elements = element_ptrs[0U];
-  free(element_ptrs);
-  if (elements == NULL) { return; }
-
-  free(elements);
 }
 
 struct mlp_backward_buffer *
 mlp_create_backward_buffer(struct mlp_model *model) {
   if (model == NULL) { return NULL; }
 
-  const size_t layer_size_count = model->layer_size_count;
-  const size_t *const layer_sizes_ref = model->layer_sizes_ref;
+  size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct creation_functions funcs = {backward_buffer_get_idx_offsets,
                                            backward_buffer_get_current_size};
@@ -72,11 +85,11 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   struct double_layer *dl =
       create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_addrs == NULL || dl->elements == NULL) {
+  if (dl->element_ptrs == NULL || dl->elements == NULL) {
     destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_addrs;
+  float **element_addrs = dl->element_ptrs;
 
   struct mlp_backward_buffer *buffer =
       (struct mlp_backward_buffer *)malloc(sizeof(struct mlp_backward_buffer));
@@ -85,10 +98,14 @@ mlp_create_backward_buffer(struct mlp_model *model) {
     return NULL;
   }
 
+  buffer->layer_metadata.layer_size_count = layer_size_count;
+  buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  buffer->layer_data.element_ptrs = dl->element_ptrs;
+  buffer->layer_data.elements = dl->elements;
   buffer->layers = element_addrs;
   buffer->raw_output_layers = element_addrs + dl->idx_offsets->data[1];
 
-  dl->element_addrs = NULL;
+  dl->element_ptrs = NULL;
   dl->elements = NULL;
   destory_double_layer(dl);
   return buffer;
@@ -97,23 +114,16 @@ mlp_create_backward_buffer(struct mlp_model *model) {
 void mlp_destroy_backward_buffer(struct mlp_backward_buffer *buffer) {
   if (buffer == NULL) { return; }
 
-  float **layers = buffer->layers;
+  mlp_destroy_content_of_layer_data(&buffer->layer_data);
   free(buffer);
-  if (layers == NULL) { return; }
-
-  float *elements = layers[0U];
-  free(layers);
-  if (elements == NULL) { return; }
-
-  free(elements);
 }
 
 struct mlp_gradient_buffer *
 mlp_create_gradient_buffer(struct mlp_model *model) {
   if (model == NULL) { return NULL; }
 
-  const size_t layer_size_count = model->layer_size_count;
-  const size_t *const layer_sizes_ref = model->layer_sizes_ref;
+  size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct creation_functions funcs = {gradient_buffer_get_idx_offsets,
                                            gradient_buffer_get_current_size};
@@ -122,11 +132,11 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   struct double_layer *dl =
       create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_addrs == NULL || dl->elements == NULL) {
+  if (dl->element_ptrs == NULL || dl->elements == NULL) {
     destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_addrs;
+  float **element_addrs = dl->element_ptrs;
 
   struct mlp_gradient_buffer *buffer =
       (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
@@ -135,9 +145,13 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
     return NULL;
   }
 
+  buffer->layer_metadata.layer_size_count = layer_size_count;
+  buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  buffer->layer_data.element_ptrs = dl->element_ptrs;
+  buffer->layer_data.elements = dl->elements;
   buffer->gradient_layers = element_addrs;
 
-  dl->element_addrs = NULL;
+  dl->element_ptrs = NULL;
   dl->elements = NULL;
   destory_double_layer(dl);
   return buffer;
@@ -146,15 +160,8 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
 void mlp_destroy_gradient_buffer(struct mlp_gradient_buffer *buffer) {
   if (buffer == NULL) { return; }
 
-  float **gradient_layers = buffer->gradient_layers;
+  mlp_destroy_content_of_layer_data(&buffer->layer_data);
   free(buffer);
-  if (gradient_layers == NULL) { return; }
-
-  float *gradients = gradient_layers[0U];
-  free(gradient_layers);
-  if (gradients == NULL) { return; }
-
-  free(gradients);
 }
 
 int mlp_set_learning_rate(struct mlp_model *model, float learning_rate) {
@@ -174,8 +181,8 @@ int mlp_set_activation_fns_ref(struct mlp_model *model,
 int mlp_fill_biases(struct mlp_model *model, const float value) {
   if (model == NULL) { return 1; }
   size_t i, j, size;
-  for (i = 0U; i < model->layer_size_count - 1U; ++i) {
-    size = model->layer_sizes_ref[i + 1U];
+  for (i = 0U; i < model->layer_metadata.layer_size_count - 1U; ++i) {
+    size = model->layer_metadata.layer_sizes_ref[i + 1U];
     if (model->bias_layers[i] == NULL) { return 2; }
     for (j = 0U; j < size; ++j) {
       model->bias_layers[i][j] = value;
@@ -187,8 +194,9 @@ int mlp_fill_biases(struct mlp_model *model, const float value) {
 int mlp_fill_weights(struct mlp_model *model, const float value) {
   if (model == NULL) { return 1; }
   size_t i, j, size;
-  for (i = 0U; i < model->layer_size_count - 1U; ++i) {
-    size = model->layer_sizes_ref[i] * model->layer_sizes_ref[i + 1U];
+  for (i = 0U; i < model->layer_metadata.layer_size_count - 1U; ++i) {
+    size = model->layer_metadata.layer_sizes_ref[i] *
+           model->layer_metadata.layer_sizes_ref[i + 1U];
     if (model->weight_layers[i] == NULL) { return 2; }
     for (j = 0U; j < size; ++j) {
       model->weight_layers[i][j] = value;
@@ -201,19 +209,23 @@ int mlp_forward(struct mlp_model *model,
                 struct mlp_backward_buffer *backward_buffer, float const *input,
                 float *output) {
   if (model == NULL || input == NULL) { return 1; }
+  if (is_metadata_not_same(&model->layer_metadata,
+                           &backward_buffer->layer_metadata)) {
+    return 2;
+  }
 
-  const size_t max_layer_idx = model->layer_size_count - 1U;
-  const size_t *layer_sizes = model->layer_sizes_ref;
+  const size_t max_layer_idx = model->layer_metadata.layer_size_count - 1U;
+  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const buffers = model->buffers;
   float **const biases = model->bias_layers;
   float **const weights = model->weight_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || buffers == NULL || biases == NULL ||
       weights == NULL || activation_funcs_ref == NULL) {
-    return 2;
+    return 3;
   }
   float *const input_layer = buffers[0U];
-  if (input_layer == NULL) { return 3; }
+  if (input_layer == NULL) { return 4; }
 
   size_t i, j, k;
   float **layers = NULL, **raw_output_layers = NULL;
@@ -256,7 +268,7 @@ int mlp_forward(struct mlp_model *model,
 
     if (current_layer == NULL || next_layer == NULL || weight == NULL ||
         bias == NULL || activation_function == NULL) {
-      return 3;
+      return 4;
     }
 
     for (j = 0U; j < front_layer_size; ++j) {
@@ -293,12 +305,18 @@ int mlp_backward(struct mlp_model *model,
       answer == NULL) {
     return 1;
   }
+  if (is_metadata_not_same(&model->layer_metadata,
+                           &backward_buffer->layer_metadata) ||
+      is_metadata_not_same(&model->layer_metadata,
+                           &gradient_output->layer_metadata)) {
+    return 2;
+  }
 
   const float learn_rate = model->learning_rate;
-  const size_t layer_size_count = model->layer_size_count;
+  const size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t last_layer_idx = layer_size_count - 1U;
 
-  const size_t *layer_sizes = model->layer_sizes_ref;
+  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const layers = backward_buffer->layers;
   float **const raw_output_layers = backward_buffer->raw_output_layers;
   float **const gradient_layers = gradient_output->gradient_layers;
@@ -308,12 +326,12 @@ int mlp_backward(struct mlp_model *model,
   if (layer_sizes == NULL || layers == NULL || raw_output_layers == NULL ||
       gradient_layers == NULL || bias_layers == NULL || weight_layers == NULL ||
       activation_funcs_ref == NULL) {
-    return 2;
+    return 3;
   }
 
   float *const final_output_layer = layers[last_layer_idx];
   float *const final_backward_layer = gradient_layers[last_layer_idx - 1U];
-  if (final_output_layer == NULL || final_backward_layer == NULL) { return 3; }
+  if (final_output_layer == NULL || final_backward_layer == NULL) { return 4; }
 
   size_t i, j, k;
   for (i = 0; i < layer_sizes[last_layer_idx]; ++i) {
@@ -343,12 +361,12 @@ int mlp_backward(struct mlp_model *model,
     if (layer == NULL || output_layer == NULL ||
         current_backward_layer == NULL || weights == NULL || biases == NULL ||
         activation_function == NULL) {
-      return 3;
+      return 4;
     }
 
     if (i > 0U) {
       last_backward_layer = gradient_layers[i - 1U];
-      if (last_backward_layer == NULL) { return 3; }
+      if (last_backward_layer == NULL) { return 4; }
     }
 
     for (j = 0U; j < front_layer_size; ++j) {
