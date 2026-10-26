@@ -3,7 +3,7 @@
 
 #include <internal/mlp_creation.h>
 
-void destory_addr_idx_offsets(struct addr_idx_offsets *offsets) {
+void destory_addr_idx_offsets(struct mlp_addr_idx_offsets *offsets) {
   if (offsets == NULL) { return; }
 
   size_t *data = offsets->data;
@@ -13,12 +13,12 @@ void destory_addr_idx_offsets(struct addr_idx_offsets *offsets) {
   free(data);
 }
 
-struct double_layer *
+struct mlp_double_layer *
 create_double_layer(bool has_extra_double_buffers,
-                    const struct creation_functions *funcs,
-                    const struct layer_size_data *layer_size) {
+                    const struct mlp_creation_functions *funcs,
+                    const struct mlp_layer_size_data *layer_size) {
   if (funcs == NULL || layer_size == NULL) { return NULL; }
-  struct addr_idx_offsets *(*const get_idx_offsets)(size_t) =
+  struct mlp_addr_idx_offsets *(*const get_idx_offsets)(size_t) =
       funcs->get_idx_offsets;
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
                                 size_t *) = funcs->get_current_size;
@@ -29,7 +29,8 @@ create_double_layer(bool has_extra_double_buffers,
 
   // allocate elements_ptrs and addr offsets
   // need layer_full_size and layer_offsets
-  struct addr_idx_offsets *idx_offsets_obj = get_idx_offsets(layer_size_count);
+  struct mlp_addr_idx_offsets *idx_offsets_obj =
+      get_idx_offsets(layer_size_count);
   if (idx_offsets_obj == NULL) { return NULL; }
   const size_t idx_offsets_size = idx_offsets_obj->size;
   const size_t *idx_offsets = idx_offsets_obj->data;
@@ -138,8 +139,8 @@ create_double_layer(bool has_extra_double_buffers,
   free(addr_offsets);
 
   // return idx_offsets
-  struct double_layer *ret =
-      (struct double_layer *)malloc(sizeof(struct double_layer));
+  struct mlp_double_layer *ret =
+      (struct mlp_double_layer *)malloc(sizeof(struct mlp_double_layer));
   if (ret == NULL) {
     destory_addr_idx_offsets(idx_offsets_obj);
     free(elements);
@@ -154,7 +155,7 @@ create_double_layer(bool has_extra_double_buffers,
   return ret;
 }
 
-void destory_double_layer(struct double_layer *obj) {
+void destory_double_layer(struct mlp_double_layer *obj) {
   if (obj == NULL) { return; }
 
   if (obj->element_ptrs != NULL) { free(obj->element_ptrs); }
@@ -163,7 +164,7 @@ void destory_double_layer(struct double_layer *obj) {
   free(obj);
 }
 
-struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
+struct mlp_addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U;
 
@@ -174,8 +175,8 @@ struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
   data[1U] = 2U;
   data[2U] = layer_size_count + 1U;
 
-  struct addr_idx_offsets *ret =
-      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  struct mlp_addr_idx_offsets *ret = (struct mlp_addr_idx_offsets *)malloc(
+      sizeof(struct mlp_addr_idx_offsets));
   if (ret == NULL) {
     free(data);
     return NULL;
@@ -211,7 +212,7 @@ int model_get_current_size(size_t i, const size_t *layer_sizes,
   return 0;
 }
 
-struct addr_idx_offsets *
+struct mlp_addr_idx_offsets *
 backward_buffer_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U - 1U;
@@ -222,8 +223,8 @@ backward_buffer_get_idx_offsets(size_t layer_size_count) {
   data[0U] = layer_full_size;
   data[1U] = layer_size_count;
 
-  struct addr_idx_offsets *ret =
-      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  struct mlp_addr_idx_offsets *ret = (struct mlp_addr_idx_offsets *)malloc(
+      sizeof(struct mlp_addr_idx_offsets));
   if (ret == NULL) {
     free(data);
     return NULL;
@@ -248,7 +249,7 @@ int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
   return 0;
 }
 
-struct addr_idx_offsets *
+struct mlp_addr_idx_offsets *
 gradient_buffer_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count - 1U;
@@ -258,8 +259,8 @@ gradient_buffer_get_idx_offsets(size_t layer_size_count) {
   if (data == NULL) { return NULL; }
   data[0U] = layer_full_size;
 
-  struct addr_idx_offsets *ret =
-      (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
+  struct mlp_addr_idx_offsets *ret = (struct mlp_addr_idx_offsets *)malloc(
+      sizeof(struct mlp_addr_idx_offsets));
   if (ret == NULL) {
     free(data);
     return NULL;

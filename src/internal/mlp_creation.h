@@ -4,48 +4,48 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-struct layer_size_data {
+struct mlp_layer_size_data {
   const size_t *layer_sizes_ref;
   size_t layer_size_count;
 };
 
-struct addr_idx_offsets {
+struct mlp_addr_idx_offsets {
   size_t *data; // first element is max `offset+1`
   size_t size;
 };
 
-struct double_layer {
+struct mlp_double_layer {
   float **element_ptrs;
   float *elements;
-  struct addr_idx_offsets *idx_offsets;
+  struct mlp_addr_idx_offsets *idx_offsets;
 };
 
-struct creation_functions {
-  struct addr_idx_offsets *(*const get_idx_offsets)(size_t);
+struct mlp_creation_functions {
+  struct mlp_addr_idx_offsets *(*const get_idx_offsets)(size_t);
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
                                 size_t *);
 };
 
-void destory_addr_idx_offsets(struct addr_idx_offsets *offsets);
+void destory_addr_idx_offsets(struct mlp_addr_idx_offsets *offsets);
 
-struct double_layer *
+struct mlp_double_layer *
 create_double_layer(bool has_extra_double_buffers,
-                    const struct creation_functions *funcs,
-                    const struct layer_size_data *layer_size);
+                    const struct mlp_creation_functions *funcs,
+                    const struct mlp_layer_size_data *layer_size);
 
-void destory_double_layer(struct double_layer *obj);
+void destory_double_layer(struct mlp_double_layer *obj);
 
-struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count);
+struct mlp_addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count);
 int model_get_current_size(size_t i, const size_t *layer_sizes,
                            const size_t *idx_offsets, size_t *current_size);
 
-struct addr_idx_offsets *
+struct mlp_addr_idx_offsets *
 backward_buffer_get_idx_offsets(size_t layer_size_count);
 int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size);
 
-struct addr_idx_offsets *
+struct mlp_addr_idx_offsets *
 gradient_buffer_get_idx_offsets(size_t layer_size_count);
 int gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,

@@ -26,11 +26,12 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
 // free.
 struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
                                    size_t layer_size_count) {
-  const struct creation_functions funcs = {model_get_idx_offsets,
-                                           model_get_current_size};
-  const struct layer_size_data layer_size_data = {layer_sizes_ref,
-                                                  layer_size_count};
-  struct double_layer *dl = create_double_layer(true, &funcs, &layer_size_data);
+  const struct mlp_creation_functions funcs = {model_get_idx_offsets,
+                                               model_get_current_size};
+  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
+                                                      layer_size_count};
+  struct mlp_double_layer *dl =
+      create_double_layer(true, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
     destory_double_layer(dl);
@@ -78,11 +79,11 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
-  const struct creation_functions funcs = {backward_buffer_get_idx_offsets,
-                                           backward_buffer_get_current_size};
-  const struct layer_size_data layer_size_data = {layer_sizes_ref,
-                                                  layer_size_count};
-  struct double_layer *dl =
+  const struct mlp_creation_functions funcs = {
+      backward_buffer_get_idx_offsets, backward_buffer_get_current_size};
+  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
+                                                      layer_size_count};
+  struct mlp_double_layer *dl =
       create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
@@ -125,11 +126,11 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
-  const struct creation_functions funcs = {gradient_buffer_get_idx_offsets,
-                                           gradient_buffer_get_current_size};
-  const struct layer_size_data layer_size_data = {layer_sizes_ref,
-                                                  layer_size_count};
-  struct double_layer *dl =
+  const struct mlp_creation_functions funcs = {
+      gradient_buffer_get_idx_offsets, gradient_buffer_get_current_size};
+  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
+                                                      layer_size_count};
+  struct mlp_double_layer *dl =
       create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
