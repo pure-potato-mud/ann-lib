@@ -38,7 +38,9 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp_fill_biases(mlp, 0.0f);
   mlp_fill_weights(mlp, 0.0f);
 
-  destory_addr_idx_offsets(dl->idx_offsets);
+  dl->element_addrs = NULL;
+  dl->elements = NULL;
+  destory_double_layer(dl);
   return mlp;
 }
 
@@ -86,7 +88,9 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   buffer->layers = element_addrs;
   buffer->raw_output_layers = element_addrs + dl->idx_offsets->data[1];
 
-  destory_addr_idx_offsets(dl->idx_offsets);
+  dl->element_addrs = NULL;
+  dl->elements = NULL;
+  destory_double_layer(dl);
   return buffer;
 }
 
@@ -133,7 +137,9 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
 
   buffer->gradient_layers = element_addrs;
 
-  destory_addr_idx_offsets(dl->idx_offsets);
+  dl->element_addrs = NULL;
+  dl->elements = NULL;
+  destory_double_layer(dl);
   return buffer;
 }
 

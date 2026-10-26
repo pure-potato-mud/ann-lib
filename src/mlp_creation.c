@@ -159,6 +159,7 @@ void destory_double_layer(struct double_layer *obj) {
 
   if (obj->element_addrs != NULL) { free(obj->element_addrs); }
   if (obj->elements != NULL) { free(obj->elements); }
+  if (obj->idx_offsets != NULL) { destory_addr_idx_offsets(obj->idx_offsets); }
   free(obj);
 }
 
@@ -251,15 +252,15 @@ gradient_buffer_get_idx_offsets(size_t layer_size_count) {
   const size_t layer_full_size = layer_size_count - 1U;
 
   size_t *data = (size_t *)malloc(sizeof(size_t));
-  if (data == NULL) {
-    free(data);
-    return NULL;
-  }
+  if (data == NULL) { return NULL; }
   data[0U] = layer_full_size;
 
   struct addr_idx_offsets *ret =
       (struct addr_idx_offsets *)malloc(sizeof(struct addr_idx_offsets));
-  if (ret == NULL) { return NULL; }
+  if (ret == NULL) {
+    free(data);
+    return NULL;
+  }
 
   ret->data = data;
   ret->size = 3U;
