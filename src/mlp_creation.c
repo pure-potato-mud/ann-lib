@@ -167,7 +167,8 @@ struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U;
 
-  size_t *data = (size_t *)malloc(3U * sizeof(size_t));
+  const size_t data_size = 3U;
+  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
   if (data == NULL) { return NULL; }
   data[0U] = layer_full_size;
   data[1U] = 2U;
@@ -181,7 +182,7 @@ struct addr_idx_offsets *model_get_idx_offsets(size_t layer_size_count) {
   }
 
   ret->data = data;
-  ret->size = 3U;
+  ret->size = data_size;
 
   return ret;
 }
@@ -215,7 +216,8 @@ backward_buffer_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U - 1U;
 
-  size_t *data = (size_t *)malloc(2U * sizeof(size_t));
+  const size_t data_size = 2U;
+  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
   if (data == NULL) { return NULL; }
   data[0U] = layer_full_size;
   data[1U] = layer_size_count;
@@ -228,7 +230,7 @@ backward_buffer_get_idx_offsets(size_t layer_size_count) {
   }
 
   ret->data = data;
-  ret->size = 3U;
+  ret->size = data_size;
 
   return ret;
 }
@@ -251,7 +253,8 @@ gradient_buffer_get_idx_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count - 1U;
 
-  size_t *data = (size_t *)malloc(sizeof(size_t));
+  const size_t data_size = 1U;
+  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
   if (data == NULL) { return NULL; }
   data[0U] = layer_full_size;
 
@@ -263,7 +266,7 @@ gradient_buffer_get_idx_offsets(size_t layer_size_count) {
   }
 
   ret->data = data;
-  ret->size = 3U;
+  ret->size = data_size;
 
   return ret;
 }
