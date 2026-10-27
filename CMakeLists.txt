@@ -9,12 +9,17 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(mlp
+add_library(mlp STATIC
   src/mlp.c
+  src/mlp_creation.c
 )
 
 target_include_directories(mlp
-  PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/ann-lib"
+  PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 )
 
 add_executable(${CMAKE_PROJECT_NAME}
@@ -22,13 +27,12 @@ add_executable(${CMAKE_PROJECT_NAME}
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
-  PRIVATE mlp
+  PUBLIC mlp
 )
 
 include(CTest)
 
 if(BUILD_TESTING)
   add_subdirectory(third_party/Unity)
-
   add_subdirectory(test)
 endif()

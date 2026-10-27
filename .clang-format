@@ -1,4 +1,3 @@
 BasedOnStyle: LLVM
-BreakBeforeBraces: Attach
-AllowShortFunctionsOnASingleLine: None
-AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortBlocksOnASingleLine: Always

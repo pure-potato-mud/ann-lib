@@ -7,5 +7,9 @@ target_link_libraries(test_mlp
   PRIVATE mlp
 )
 
-set_tests_properties(PROPERTIES CTEST_TEST_TIMEOUT 1)
+target_include_directories(test_mlp
+  PRIVATE ${PROJECT_SOURCE_DIR}/src
+)
+
 add_test(NAME test_mlp COMMAND test_mlp)
+set_tests_properties(test_mlp PROPERTIES TIMEOUT 1)

@@ -3,15 +3,6 @@ SOURCE_FILE=$0
 PROJ_DIR=$(cd -- "$( dirname -- "$SCRIPT_FILE" )/.." &> /dev/null && pwd)
 BUILD_DIR=${PROJ_DIR}/build
 
-leave() {
-  local status=$1
-  if [ $SCRIPT_FILE = $SOURCE_FILE ]; then
-    exit $status
-  else
-    return $status
-  fi
-}
-
 echo_result() {
   local status=$1
   local success_text=$2
@@ -29,12 +20,19 @@ echo_result() {
 }
 
 # configure
-cmake -S $PROJ_DIR -B $BUILD_DIR
+if [ "$1" == "--debug" ]; then
+  cmake -S $PROJ_DIR -B $BUILD_DIR -DCMAKE_BUILD_TYPE=Debug
+else
+  cmake -S $PROJ_DIR -B $BUILD_DIR -DCMAKE_BUILD_TYPE=Release
+fi
 configure_status=$?
 echo_result $configure_status "" "configure failed."
 if [[ $configure_status -ne 0 ]]; then
-echo hi
-  return $(leave)
+  if [ $SCRIPT_FILE = $SOURCE_FILE ]; then
+    exit "$configure_status"
+  else
+    return "$configure_status"
+  fi
 fi
 
 # build
@@ -42,7 +40,11 @@ cmake --build $BUILD_DIR
 build_status=$?
 echo_result $build_status "" "build failed."
 if [[ $build_status -ne 0 ]]; then
-  return $(leave)
+  if [ $SCRIPT_FILE = $SOURCE_FILE ]; then
+    exit "$build_status"
+  else
+    return "$build_status"
+  fi
 fi
 
 # run(optional)

@@ -18,6 +18,12 @@ Build the program:
 ./script/build.sh
 ```
 
+Build the program for debug:
+
+```bash
+./script/build.sh --debug
+```
+
 Build and run executable:
 
 ```bash
