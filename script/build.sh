@@ -29,9 +29,9 @@ configure_status=$?
 echo_result $configure_status "" "configure failed."
 if [[ $configure_status -ne 0 ]]; then
   if [ $SCRIPT_FILE = $SOURCE_FILE ]; then
-    exit $configure_status
+    exit "$configure_status"
   else
-    return $configure_status
+    return "$configure_status"
   fi
 fi
 
@@ -41,9 +41,9 @@ build_status=$?
 echo_result $build_status "" "build failed."
 if [[ $build_status -ne 0 ]]; then
   if [ $SCRIPT_FILE = $SOURCE_FILE ]; then
-    exit $build_status
+    exit "$build_status"
   else
-    return $stbuild_statusatus
+    return "$build_status"
   fi
 fi
 
