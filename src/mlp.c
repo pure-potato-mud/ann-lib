@@ -217,10 +217,11 @@ int mlp_fill_weights(struct mlp_model *model, const float value) {
 int mlp_forward(struct mlp_model *model,
                 struct mlp_backward_buffer *backward_buffer, float const *input,
                 float *output) {
+  struct mlp_backward_buffer *local_backward_buffer = backward_buffer;
   if (model == NULL || input == NULL) { return 1; }
-  if (backward_buffer != NULL &&
+  if (local_backward_buffer != NULL &&
       is_metadata_not_same(&model->layer_metadata,
-                           &backward_buffer->layer_metadata)) {
+                           &local_backward_buffer->layer_metadata)) {
     return 2;
   }
 
@@ -239,23 +240,25 @@ int mlp_forward(struct mlp_model *model,
 
   size_t i, j, k;
   float **layers = NULL, **raw_output_layers = NULL;
-  if (backward_buffer != NULL) {
-    layers = backward_buffer->layers;
-    raw_output_layers = backward_buffer->raw_output_layers;
+  if (local_backward_buffer != NULL) {
+    layers = local_backward_buffer->layers;
+    raw_output_layers = local_backward_buffer->raw_output_layers;
   }
   if (layers != NULL && raw_output_layers != NULL) {
     for (i = 0U; i < max_layer_idx; ++i) {
       if (layers[i] == NULL || raw_output_layers[i] == NULL) {
-        backward_buffer = NULL;
+        local_backward_buffer = NULL;
       }
     }
-    if (layers[max_layer_idx] == NULL) { backward_buffer = NULL; }
+    if (layers[max_layer_idx] == NULL) { local_backward_buffer = NULL; }
+  } else {
+    local_backward_buffer = NULL;
   }
 
   for (i = 0U; i < layer_sizes[0U]; ++i) {
     input_layer[i] = input[i];
   }
-  if (backward_buffer != NULL) {
+  if (local_backward_buffer != NULL) {
     for (i = 0U; i < layer_sizes[0U]; ++i) {
       layers[0U][i] = input[i];
     }
@@ -288,11 +291,13 @@ int mlp_forward(struct mlp_model *model,
       for (k = 0U; k < back_layer_size; ++k) {
         next_layer[j] += weight[j_idx + k] * current_layer[k];
       }
-      if (backward_buffer != NULL) { raw_output_layers[i][j] = next_layer[j]; }
+      if (local_backward_buffer != NULL) {
+        raw_output_layers[i][j] = next_layer[j];
+      }
 
       next_layer[j] = activation_function(next_layer[j]);
     }
-    if (backward_buffer != NULL) {
+    if (local_backward_buffer != NULL) {
       for (j = 0U; j < front_layer_size; ++j) {
         layers[i + 1U][j] = next_layer[j];
       }
