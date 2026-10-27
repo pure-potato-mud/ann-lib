@@ -210,7 +210,8 @@ int mlp_forward(struct mlp_model *model,
                 struct mlp_backward_buffer *backward_buffer, float const *input,
                 float *output) {
   if (model == NULL || input == NULL) { return 1; }
-  if (is_metadata_not_same(&model->layer_metadata,
+  if (backward_buffer != NULL &&
+      is_metadata_not_same(&model->layer_metadata,
                            &backward_buffer->layer_metadata)) {
     return 2;
   }
