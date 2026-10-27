@@ -26,22 +26,22 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
 // free.
 struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
                                    size_t layer_size_count) {
-  const struct mlp_creation_functions funcs = {model_get_idx_offsets,
-                                               model_get_current_size};
+  const struct mlp_creation_functions funcs = {mlp_model_get_idx_offsets,
+                                               mlp_model_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      create_double_layer(true, &funcs, &layer_size_data);
+      mlp_create_double_layer(true, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
   float **element_addrs = dl->element_ptrs;
 
   struct mlp_model *mlp = (struct mlp_model *)malloc(sizeof(struct mlp_model));
   if (mlp == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
 
@@ -61,7 +61,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 
   dl->element_ptrs = NULL;
   dl->elements = NULL;
-  destory_double_layer(dl);
+  mlp_destory_double_layer(dl);
   return mlp;
 }
 
@@ -80,14 +80,15 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct mlp_creation_functions funcs = {
-      backward_buffer_get_idx_offsets, backward_buffer_get_current_size};
+      mlp_backward_buffer_get_idx_offsets,
+      mlp_backward_buffer_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      create_double_layer(false, &funcs, &layer_size_data);
+      mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
   float **element_addrs = dl->element_ptrs;
@@ -95,7 +96,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   struct mlp_backward_buffer *buffer =
       (struct mlp_backward_buffer *)malloc(sizeof(struct mlp_backward_buffer));
   if (buffer == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
 
@@ -108,7 +109,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
 
   dl->element_ptrs = NULL;
   dl->elements = NULL;
-  destory_double_layer(dl);
+  mlp_destory_double_layer(dl);
   return buffer;
 }
 
@@ -127,14 +128,15 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct mlp_creation_functions funcs = {
-      gradient_buffer_get_idx_offsets, gradient_buffer_get_current_size};
+      mlp_gradient_buffer_get_idx_offsets,
+      mlp_gradient_buffer_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      create_double_layer(false, &funcs, &layer_size_data);
+      mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
   if (dl->element_ptrs == NULL || dl->elements == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
   float **element_addrs = dl->element_ptrs;
@@ -142,7 +144,7 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   struct mlp_gradient_buffer *buffer =
       (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
   if (buffer == NULL) {
-    destory_double_layer(dl);
+    mlp_destory_double_layer(dl);
     return NULL;
   }
 
@@ -154,7 +156,7 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
 
   dl->element_ptrs = NULL;
   dl->elements = NULL;
-  destory_double_layer(dl);
+  mlp_destory_double_layer(dl);
   return buffer;
 }
 
