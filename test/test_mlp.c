@@ -10,8 +10,11 @@ static float leaky_relu(float value) {
 }
 
 static struct mlp_model *model;
+static struct mlp_model *model_another;
 static struct mlp_backward_buffer *backward_buffer;
+static struct mlp_backward_buffer *backward_buffer_another;
 static struct mlp_gradient_buffer *gradient_buffer;
+static struct mlp_gradient_buffer *gradient_buffer_another;
 
 static const float input[2] = {0.5f, 2.0f}, answer[2] = {1.0f, 0.0f};
 static const size_t layer_sizes[3] = {2U, 3U, 2U};
@@ -19,17 +22,25 @@ static const size_t layer_size_count = 3U;
 static const float learning_rate = 0.125f;
 static float (*activation_funcs[3U])(float) = {leaky_relu, leaky_relu,
                                                leaky_relu};
+static const size_t layer_sizes_another[4] = {3U, 4U, 1U, 3U};
+static const size_t layer_size_count_another = 4U;
 
 void setUp() {
   model = NULL;
+  model_another = NULL;
   backward_buffer = NULL;
+  backward_buffer_another = NULL;
   gradient_buffer = NULL;
+  gradient_buffer_another = NULL;
 }
 
 void tearDown() {
   mlp_destroy_model(model);
+  mlp_destroy_model(model_another);
   mlp_destroy_backward_buffer(backward_buffer);
+  mlp_destroy_backward_buffer(backward_buffer_another);
   mlp_destroy_gradient_buffer(gradient_buffer);
+  mlp_destroy_gradient_buffer(gradient_buffer_another);
 }
 
 void test_mlp_create_model(void) {
@@ -194,22 +205,26 @@ void test_mlp_forward(void) {
 void test_mlp_forward_different_model_metadata(void) {
   model = mlp_create_model(layer_sizes, layer_size_count);
   TEST_ASSERT_NOT_NULL(model);
+  model_another =
+      mlp_create_model(layer_sizes_another, layer_size_count_another);
+  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  backward_buffer = mlp_create_backward_buffer(model);
+  backward_buffer = mlp_create_backward_buffer(model_another);
   TEST_ASSERT_NOT_NULL(backward_buffer);
 
-  model->layer_metadata.layer_sizes_ref = NULL;
   TEST_ASSERT_EQUAL_INT(2, mlp_forward(model, backward_buffer, input, NULL));
 }
 
 void test_mlp_forward_different_backward_buffer_metadata(void) {
   model = mlp_create_model(layer_sizes, layer_size_count);
   TEST_ASSERT_NOT_NULL(model);
+  model_another =
+      mlp_create_model(layer_sizes_another, layer_size_count_another);
+  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  backward_buffer = mlp_create_backward_buffer(model);
+  backward_buffer = mlp_create_backward_buffer(model_another);
   TEST_ASSERT_NOT_NULL(backward_buffer);
 
-  backward_buffer->layer_metadata.layer_sizes_ref = NULL;
   TEST_ASSERT_EQUAL_INT(2, mlp_forward(model, backward_buffer, input, NULL));
 }
 
@@ -319,48 +334,52 @@ void test_mlp_backward(void) {
 }
 
 void test_mlp_backward_different_model_metadata(void) {
-
   model = mlp_create_model(layer_sizes, layer_size_count);
   TEST_ASSERT_NOT_NULL(model);
+  model_another =
+      mlp_create_model(layer_sizes_another, layer_size_count_another);
+  TEST_ASSERT_NOT_NULL(model_another);
   backward_buffer = mlp_create_backward_buffer(model);
   TEST_ASSERT_NOT_NULL(backward_buffer);
   gradient_buffer = mlp_create_gradient_buffer(model);
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
 
-  model->layer_metadata.layer_sizes_ref = NULL;
-  int result = mlp_backward(model, backward_buffer, gradient_buffer, answer);
+  int result =
+      mlp_backward(model_another, backward_buffer, gradient_buffer, answer);
 
   TEST_ASSERT_EQUAL_INT(2, result);
 }
 
 void test_mlp_backward_different_backward_buffer_metadata(void) {
-
   model = mlp_create_model(layer_sizes, layer_size_count);
   TEST_ASSERT_NOT_NULL(model);
-  backward_buffer = mlp_create_backward_buffer(model);
+  model_another =
+      mlp_create_model(layer_sizes_another, layer_size_count_another);
+  TEST_ASSERT_NOT_NULL(model_another);
+  backward_buffer = mlp_create_backward_buffer(model_another);
   TEST_ASSERT_NOT_NULL(backward_buffer);
   gradient_buffer = mlp_create_gradient_buffer(model);
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
 
-  backward_buffer->layer_metadata.layer_sizes_ref = NULL;
   int result = mlp_backward(model, backward_buffer, gradient_buffer, answer);
 
   TEST_ASSERT_EQUAL_INT(2, result);
 }
 
 void test_mlp_backward_different_gradient_buffer_metadata(void) {
-
   model = mlp_create_model(layer_sizes, layer_size_count);
   TEST_ASSERT_NOT_NULL(model);
+  model_another =
+      mlp_create_model(layer_sizes_another, layer_size_count_another);
+  TEST_ASSERT_NOT_NULL(model_another);
   backward_buffer = mlp_create_backward_buffer(model);
   TEST_ASSERT_NOT_NULL(backward_buffer);
-  gradient_buffer = mlp_create_gradient_buffer(model);
+  gradient_buffer = mlp_create_gradient_buffer(model_another);
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
 
-  gradient_buffer->layer_metadata.layer_sizes_ref = NULL;
   int result = mlp_backward(model, backward_buffer, gradient_buffer, answer);
 
   TEST_ASSERT_EQUAL_INT(2, result);
