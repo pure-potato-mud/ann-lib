@@ -12,14 +12,20 @@ void mlp_destroy_content_of_layer_data(struct mlp_layer_data *layer_data) {
 }
 
 // compare two metadata.
-// return true any one is NULL.
+// return true any one or its layer_sizes_ref is NULL.
 // and check content, false if layer_size_count and layer_sizes_ref are both
 // same.
 bool is_metadata_not_same(struct mlp_layer_metadata *a,
                           struct mlp_layer_metadata *b) {
-  if (a == NULL || b == NULL) { return false; }
-  return (a->layer_size_count != b->layer_size_count) ||
-         (a->layer_sizes_ref != b->layer_sizes_ref);
+  if (a == NULL || b == NULL) { return true; }
+  if (a->layer_size_count != b->layer_size_count) { return true; }
+  if (a->layer_sizes_ref == NULL || b->layer_sizes_ref == NULL) { return true; }
+  size_t i;
+  if (a->layer_sizes_ref == b->layer_sizes_ref) { return false; }
+  for (i = 0U; i < a->layer_size_count; ++i) {
+    if (a->layer_sizes_ref[i] != b->layer_sizes_ref[i]) { return true; }
+  }
+  return false;
 }
 
 // WARN: mlp will store pointer layer_sizes, so DO NOT free it before mlp been

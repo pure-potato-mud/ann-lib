@@ -399,7 +399,7 @@ void test_mlp_backward_null_layer_sizes(void) {
   gradient_buffer->layer_metadata.layer_sizes_ref = NULL;
   int result = mlp_backward(model, backward_buffer, gradient_buffer, answer);
 
-  TEST_ASSERT_EQUAL_INT(3, result);
+  TEST_ASSERT_EQUAL_INT(2, result);
 }
 
 void test_mlp_backward_null_layers(void) {
