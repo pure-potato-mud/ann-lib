@@ -65,6 +65,14 @@ create_double_layer(bool has_extra_double_buffers,
   // optional: calculate max_layer_size, and adjust offset_sum
   size_t i, offset_sum = 0, current_size;
   int result;
+  for (i = 0; i < layer_size_count; ++i) {
+    if (layer_sizes_ref[i] == 0U) {
+      destory_addr_idx_offsets(idx_offsets_obj);
+      free(addr_offsets);
+      free(element_addrs);
+      return NULL;
+    }
+  }
   for (i = 0; i < layer_full_size; ++i) {
     result = get_current_size(i, layer_sizes_ref, idx_offsets, &current_size);
     if (result != 0) {
@@ -197,9 +205,8 @@ int model_get_current_size(size_t i, const size_t *layer_sizes,
   } else if (i < bias_offset) { // offsets for weights
     current_layer_idx = i - weight_offset + 1U;
     current_neruon_count = layer_sizes[current_layer_idx];
-    // zero neuron test and multification overflow test
-    if (current_neruon_count == 0U ||
-        SIZE_MAX / current_neruon_count < layer_sizes[current_layer_idx - 1U]) {
+    // multification overflow test
+    if (SIZE_MAX / current_neruon_count < layer_sizes[current_layer_idx - 1U]) {
       return 1;
       /* free(parameter_addr_offsets);
       free(element_ptrs);
@@ -242,7 +249,6 @@ int backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
   size_t raw_output_offset = idx_offsets[1U];
   if (i < raw_output_offset) {
     *current_size = layer_sizes[i];
-    if (*current_size == 0U) { return 1; }
   } else {
     *current_size = layer_sizes[i - raw_output_offset + 1U];
   }
@@ -276,6 +282,5 @@ int gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *idx_offsets,
                                      size_t *current_size) {
   *current_size = layer_sizes[i + 1U];
-  if (*current_size == 0U) { return 1; }
   return 0;
 }
