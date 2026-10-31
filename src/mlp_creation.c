@@ -214,9 +214,6 @@ int mlp_model_get_current_size(size_t i, const size_t *layer_sizes,
     // multification overflow test
     if (SIZE_MAX / current_neruon_count < layer_sizes[current_layer_idx - 1U]) {
       return 1;
-      /* free(parameter_addr_offsets);
-      free(element_ptrs);
-      return NULL; */
     }
     *current_size = current_neruon_count * layer_sizes[current_layer_idx - 1U];
   } else { // offsets for bias
