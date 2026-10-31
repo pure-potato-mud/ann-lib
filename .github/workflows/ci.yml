@@ -1,5 +1,10 @@
-pull_request:
-  branches: [main]
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   build-and-test:
