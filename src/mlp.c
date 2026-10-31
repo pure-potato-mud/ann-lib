@@ -8,7 +8,7 @@
 void mlp_destroy_content_of_layer_data(struct mlp_layer_data *layer_data) {
   if (layer_data == NULL) { return; }
   if (layer_data->elements != NULL) { free(layer_data->elements); }
-  if (layer_data->element_ptrs != NULL) { free(layer_data->element_ptrs); }
+  if (layer_data->layers != NULL) { free(layer_data->layers); }
 }
 
 // compare two metadata.
@@ -39,11 +39,11 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   struct mlp_double_layer *dl =
       mlp_create_double_layer(true, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_ptrs == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_ptrs;
+  float **layers = dl->layers;
 
   struct mlp_model *mlp = (struct mlp_model *)malloc(sizeof(struct mlp_model));
   if (mlp == NULL) {
@@ -53,19 +53,19 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 
   mlp->layer_metadata.layer_size_count = layer_size_count;
   mlp->layer_metadata.layer_sizes_ref = layer_sizes_ref;
-  mlp->layer_data.element_ptrs = dl->element_ptrs;
+  mlp->layer_data.layers = dl->layers;
   mlp->layer_data.elements = dl->elements;
 
-  mlp->buffers = element_addrs;
-  mlp->weight_layers = element_addrs + dl->field_offsets->field_offsets[0U];
-  mlp->bias_layers = element_addrs + dl->field_offsets->field_offsets[1U];
+  mlp->buffers = layers;
+  mlp->weight_layers = layers + dl->field_offsets->field_offsets[0U];
+  mlp->bias_layers = layers + dl->field_offsets->field_offsets[1U];
   mlp->activation_funcs_ref = NULL;
 
   mlp_set_learning_rate(mlp, 0.0f);
   mlp_fill_biases(mlp, 0.0f);
   mlp_fill_weights(mlp, 0.0f);
 
-  dl->element_ptrs = NULL;
+  dl->layers = NULL;
   dl->elements = NULL;
   mlp_destory_double_layer(dl);
   return mlp;
@@ -93,11 +93,11 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   struct mlp_double_layer *dl =
       mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_ptrs == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_ptrs;
+  float **layers = dl->layers;
 
   struct mlp_backward_buffer *buffer =
       (struct mlp_backward_buffer *)malloc(sizeof(struct mlp_backward_buffer));
@@ -108,13 +108,12 @@ mlp_create_backward_buffer(struct mlp_model *model) {
 
   buffer->layer_metadata.layer_size_count = layer_size_count;
   buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
-  buffer->layer_data.element_ptrs = dl->element_ptrs;
+  buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements = dl->elements;
-  buffer->layers = element_addrs;
-  buffer->raw_output_layers =
-      element_addrs + dl->field_offsets->field_offsets[0U];
+  buffer->layers = layers;
+  buffer->raw_output_layers = layers + dl->field_offsets->field_offsets[0U];
 
-  dl->element_ptrs = NULL;
+  dl->layers = NULL;
   dl->elements = NULL;
   mlp_destory_double_layer(dl);
   return buffer;
@@ -142,11 +141,11 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   struct mlp_double_layer *dl =
       mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->element_ptrs == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
-  float **element_addrs = dl->element_ptrs;
+  float **layers = dl->layers;
 
   struct mlp_gradient_buffer *buffer =
       (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
@@ -157,11 +156,11 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
 
   buffer->layer_metadata.layer_size_count = layer_size_count;
   buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
-  buffer->layer_data.element_ptrs = dl->element_ptrs;
+  buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements = dl->elements;
-  buffer->gradient_layers = element_addrs;
+  buffer->gradient_layers = layers;
 
-  dl->element_ptrs = NULL;
+  dl->layers = NULL;
   dl->elements = NULL;
   mlp_destory_double_layer(dl);
   return buffer;

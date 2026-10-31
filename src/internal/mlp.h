@@ -11,7 +11,7 @@ struct mlp_layer_metadata {
 };
 
 struct mlp_layer_data {
-  float **element_ptrs;
+  float **layers;
   float *elements;
 };
 

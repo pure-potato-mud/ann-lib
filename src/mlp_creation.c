@@ -27,7 +27,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   const size_t layer_size_count = layer_size->layer_size_count;
   if (layer_sizes_ref == NULL || layer_size_count < 2U) { return NULL; }
 
-  // allocate elements_ptrs and addr offsets
+  // allocate layers and addr offsets
   // need layer_full_size and layer_offsets
   struct mlp_field_offsets *field_offsets_obj =
       get_field_offsets(layer_size_count);
@@ -53,8 +53,8 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     mlp_destory_field_offsets(field_offsets_obj);
     return NULL;
   }
-  float **element_addrs = (float **)malloc(layer_full_size * sizeof(float *));
-  if (element_addrs == NULL) {
+  float **layers = (float **)malloc(layer_full_size * sizeof(float *));
+  if (layers == NULL) {
     free(addr_offsets);
     mlp_destory_field_offsets(field_offsets_obj);
     return NULL;
@@ -69,7 +69,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     if (layer_sizes_ref[i] == 0U) {
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
-      free(element_addrs);
+      free(layers);
       return NULL;
     }
   }
@@ -78,13 +78,13 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     if (result != 0) {
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
-      free(element_addrs);
+      free(layers);
       return NULL;
     }
     if (SIZE_MAX - current_size < offset_sum) {
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
-      free(element_addrs);
+      free(layers);
       return NULL;
     }
     // get address offset
@@ -96,7 +96,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   if (max_layer_size == 0) {
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
-    free(element_addrs);
+    free(layers);
     return NULL;
   }
   for (i = 0; i < layer_size_count; ++i) {
@@ -110,7 +110,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     if ((SIZE_MAX - offset_sum) / 2U < max_layer_size) {
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
-      free(element_addrs);
+      free(layers);
       return NULL;
     }
     offset_sum += 2U * max_layer_size;
@@ -121,27 +121,27 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   if (SIZE_MAX / sizeof(float) < offset_sum) {
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
-    free(element_addrs);
+    free(layers);
     return NULL;
   }
   float *elements = (float *)malloc(offset_sum * sizeof(float));
   if (elements == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
-    free(element_addrs);
+    free(layers);
     return NULL;
   }
 
-  // apply elements addr to elements_ptrs
+  // apply elements addr to layers
   if (has_extra_double_buffers) {
-    element_addrs[0U] = elements;
-    element_addrs[1U] = elements + max_layer_size;
+    layers[0U] = elements;
+    layers[1U] = elements + max_layer_size;
     for (i = field_offsets[0U]; i < layer_full_size; ++i) {
-      element_addrs[i] = elements + addr_offsets[i] + 2U * max_layer_size;
+      layers[i] = elements + addr_offsets[i] + 2U * max_layer_size;
     }
   } else {
     for (i = 0U; i < layer_full_size; ++i) {
-      element_addrs[i] = elements + addr_offsets[i];
+      layers[i] = elements + addr_offsets[i];
     }
   }
   free(addr_offsets);
@@ -152,11 +152,11 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   if (ret == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
     free(elements);
-    free(element_addrs);
+    free(layers);
     return NULL;
   }
 
-  ret->element_ptrs = element_addrs;
+  ret->layers = layers;
   ret->elements = elements;
   ret->field_offsets = field_offsets_obj;
 
@@ -166,7 +166,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
 void mlp_destory_double_layer(struct mlp_double_layer *obj) {
   if (obj == NULL) { return; }
 
-  if (obj->element_ptrs != NULL) { free(obj->element_ptrs); }
+  if (obj->layers != NULL) { free(obj->layers); }
   if (obj->elements != NULL) { free(obj->elements); }
   if (obj->field_offsets != NULL) {
     mlp_destory_field_offsets(obj->field_offsets);
