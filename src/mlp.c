@@ -32,7 +32,7 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
 // free.
 struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
                                    size_t layer_size_count) {
-  const struct mlp_creation_functions funcs = {mlp_model_get_idx_offsets,
+  const struct mlp_creation_functions funcs = {mlp_model_get_field_offsets,
                                                mlp_model_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
@@ -57,8 +57,8 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp->layer_data.elements = dl->elements;
 
   mlp->buffers = element_addrs;
-  mlp->weight_layers = element_addrs + dl->idx_offsets->data[1];
-  mlp->bias_layers = element_addrs + dl->idx_offsets->data[2];
+  mlp->weight_layers = element_addrs + dl->field_offsets->field_offsets[1];
+  mlp->bias_layers = element_addrs + dl->field_offsets->field_offsets[2];
   mlp->activation_funcs_ref = NULL;
 
   mlp_set_learning_rate(mlp, 0.0f);
@@ -86,7 +86,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct mlp_creation_functions funcs = {
-      mlp_backward_buffer_get_idx_offsets,
+      mlp_backward_buffer_get_field_offsets,
       mlp_backward_buffer_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
@@ -111,7 +111,8 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   buffer->layer_data.element_ptrs = dl->element_ptrs;
   buffer->layer_data.elements = dl->elements;
   buffer->layers = element_addrs;
-  buffer->raw_output_layers = element_addrs + dl->idx_offsets->data[1];
+  buffer->raw_output_layers =
+      element_addrs + dl->field_offsets->field_offsets[1];
 
   dl->element_ptrs = NULL;
   dl->elements = NULL;
@@ -134,7 +135,7 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
 
   const struct mlp_creation_functions funcs = {
-      mlp_gradient_buffer_get_idx_offsets,
+      mlp_gradient_buffer_get_field_offsets,
       mlp_gradient_buffer_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
