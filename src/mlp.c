@@ -57,8 +57,8 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp->layer_data.elements = dl->elements;
 
   mlp->buffers = element_addrs;
-  mlp->weight_layers = element_addrs + dl->field_offsets->field_offsets[1];
-  mlp->bias_layers = element_addrs + dl->field_offsets->field_offsets[2];
+  mlp->weight_layers = element_addrs + dl->field_offsets->field_offsets[0U];
+  mlp->bias_layers = element_addrs + dl->field_offsets->field_offsets[1U];
   mlp->activation_funcs_ref = NULL;
 
   mlp_set_learning_rate(mlp, 0.0f);
@@ -112,7 +112,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   buffer->layer_data.elements = dl->elements;
   buffer->layers = element_addrs;
   buffer->raw_output_layers =
-      element_addrs + dl->field_offsets->field_offsets[1];
+      element_addrs + dl->field_offsets->field_offsets[0U];
 
   dl->element_ptrs = NULL;
   dl->elements = NULL;

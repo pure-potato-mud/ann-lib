@@ -10,7 +10,7 @@ struct mlp_layer_size_data {
 };
 
 struct mlp_field_offsets {
-  size_t *field_offsets; // first element is max `offset+1`
+  size_t *field_offsets; // last element is `max_offset + 1`
   size_t field_offset_count;
 };
 
