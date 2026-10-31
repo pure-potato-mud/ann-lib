@@ -20,8 +20,8 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
   if (a == NULL || b == NULL) { return true; }
   if (a->layer_size_count != b->layer_size_count) { return true; }
   if (a->layer_sizes_ref == NULL || b->layer_sizes_ref == NULL) { return true; }
-  size_t i;
   if (a->layer_sizes_ref == b->layer_sizes_ref) { return false; }
+  size_t i;
   for (i = 0U; i < a->layer_size_count; ++i) {
     if (a->layer_sizes_ref[i] != b->layer_sizes_ref[i]) { return true; }
   }
