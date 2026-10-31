@@ -157,7 +157,8 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   }
 
   ret->layers = layers;
-  ret->elements = elements;
+  ret->elements_begin = elements;
+  ret->elements_end = elements + offset_sum;
   ret->field_offsets = field_offsets_obj;
 
   return ret;
@@ -167,7 +168,7 @@ void mlp_destory_double_layer(struct mlp_double_layer *obj) {
   if (obj == NULL) { return; }
 
   if (obj->layers != NULL) { free(obj->layers); }
-  if (obj->elements != NULL) { free(obj->elements); }
+  if (obj->elements_begin != NULL) { free(obj->elements_begin); }
   if (obj->field_offsets != NULL) {
     mlp_destory_field_offsets(obj->field_offsets);
   }

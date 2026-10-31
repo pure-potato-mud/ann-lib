@@ -7,7 +7,7 @@
 
 void mlp_destroy_content_of_layer_data(struct mlp_layer_data *layer_data) {
   if (layer_data == NULL) { return; }
-  if (layer_data->elements != NULL) { free(layer_data->elements); }
+  if (layer_data->elements_begin != NULL) { free(layer_data->elements_begin); }
   if (layer_data->layers != NULL) { free(layer_data->layers); }
 }
 
@@ -39,7 +39,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   struct mlp_double_layer *dl =
       mlp_create_double_layer(true, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->layers == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements_begin == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -54,7 +54,8 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp->layer_metadata.layer_size_count = layer_size_count;
   mlp->layer_metadata.layer_sizes_ref = layer_sizes_ref;
   mlp->layer_data.layers = dl->layers;
-  mlp->layer_data.elements = dl->elements;
+  mlp->layer_data.elements_begin = dl->elements_begin;
+  mlp->layer_data.elements_end = dl->elements_end;
 
   mlp->buffers = layers;
   mlp->weight_layers = layers + dl->field_offsets->field_offsets[0U];
@@ -66,7 +67,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   mlp_fill_weights(mlp, 0.0f);
 
   dl->layers = NULL;
-  dl->elements = NULL;
+  dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
   return mlp;
 }
@@ -93,7 +94,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   struct mlp_double_layer *dl =
       mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->layers == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements_begin == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -109,12 +110,12 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   buffer->layer_metadata.layer_size_count = layer_size_count;
   buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
-  buffer->layer_data.elements = dl->elements;
+  buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->layers = layers;
   buffer->raw_output_layers = layers + dl->field_offsets->field_offsets[0U];
 
   dl->layers = NULL;
-  dl->elements = NULL;
+  dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
   return buffer;
 }
@@ -141,7 +142,7 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   struct mlp_double_layer *dl =
       mlp_create_double_layer(false, &funcs, &layer_size_data);
   if (dl == NULL) { return NULL; }
-  if (dl->layers == NULL || dl->elements == NULL) {
+  if (dl->layers == NULL || dl->elements_begin == NULL) {
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -157,11 +158,11 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   buffer->layer_metadata.layer_size_count = layer_size_count;
   buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
-  buffer->layer_data.elements = dl->elements;
+  buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->gradient_layers = layers;
 
   dl->layers = NULL;
-  dl->elements = NULL;
+  dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
   return buffer;
 }

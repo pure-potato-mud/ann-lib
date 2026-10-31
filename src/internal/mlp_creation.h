@@ -16,7 +16,8 @@ struct mlp_field_offsets {
 
 struct mlp_double_layer {
   float **layers;
-  float *elements;
+  float *elements_begin;
+  float *elements_end;
   struct mlp_field_offsets *field_offsets;
 };
 
