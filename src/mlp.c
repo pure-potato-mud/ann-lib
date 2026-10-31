@@ -190,27 +190,22 @@ int mlp_set_activation_fns_ref(struct mlp_model *model,
 
 int mlp_fill_biases(struct mlp_model *model, const float value) {
   if (model == NULL) { return 1; }
-  size_t i, j, size;
-  for (i = 0U; i < model->layer_metadata.layer_size_count - 1U; ++i) {
-    size = model->layer_metadata.layer_sizes_ref[i + 1U];
-    if (model->bias_layers[i] == NULL) { return 2; }
-    for (j = 0U; j < size; ++j) {
-      model->bias_layers[i][j] = value;
-    }
+  float *elements_end = model->layer_data.elements_end;
+  if (elements_end == NULL) { return 2; }
+  float *i;
+  for (i = model->bias_layers[0U]; i < elements_end; ++i) {
+    *i = value;
   }
   return 0;
 }
 
 int mlp_fill_weights(struct mlp_model *model, const float value) {
   if (model == NULL) { return 1; }
-  size_t i, j, size;
-  for (i = 0U; i < model->layer_metadata.layer_size_count - 1U; ++i) {
-    size = model->layer_metadata.layer_sizes_ref[i] *
-           model->layer_metadata.layer_sizes_ref[i + 1U];
-    if (model->weight_layers[i] == NULL) { return 2; }
-    for (j = 0U; j < size; ++j) {
-      model->weight_layers[i][j] = value;
-    }
+  float *elements_end = model->layer_data.elements_end;
+  if (elements_end == NULL) { return 2; }
+  float *i;
+  for (i = model->weight_layers[0U]; i < model->bias_layers[0U]; ++i) {
+    *i = value;
   }
   return 0;
 }
