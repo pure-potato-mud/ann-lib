@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <ann-lib/mlp.h>
+
 struct mlp_layer_size_data {
   const size_t *layer_sizes_ref;
   size_t layer_size_count;
@@ -29,10 +31,9 @@ struct mlp_creation_functions {
 
 void mlp_destory_field_offsets(struct mlp_field_offsets *offsets);
 
-struct mlp_double_layer *
-mlp_create_double_layer(bool has_extra_double_buffers,
-                        const struct mlp_creation_functions *funcs,
-                        const struct mlp_layer_size_data *layer_size);
+struct mlp_double_layer *mlp_create_double_layer(
+    bool has_extra_double_buffers, const struct mlp_creation_functions *funcs,
+    const struct mlp_layer_size_data *layer_size, enum mlp_status *status);
 
 void mlp_destory_double_layer(struct mlp_double_layer *obj);
 

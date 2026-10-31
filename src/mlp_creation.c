@@ -1,3 +1,4 @@
+#include "mlp.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -13,50 +14,63 @@ void mlp_destory_field_offsets(struct mlp_field_offsets *offsets) {
   free(data);
 }
 
-struct mlp_double_layer *
-mlp_create_double_layer(bool has_extra_double_buffers,
-                        const struct mlp_creation_functions *funcs,
-                        const struct mlp_layer_size_data *layer_size) {
+struct mlp_double_layer *mlp_create_double_layer(
+    bool has_extra_double_buffers, const struct mlp_creation_functions *funcs,
+    const struct mlp_layer_size_data *layer_size, enum mlp_status *status) {
   if (funcs == NULL || layer_size == NULL) { return NULL; }
   struct mlp_field_offsets *(*const get_field_offsets)(size_t) =
       funcs->get_field_offsets;
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
                                 size_t *) = funcs->get_current_size;
-  if (get_field_offsets == NULL || get_current_size == NULL) { return NULL; }
+  if (get_field_offsets == NULL || get_current_size == NULL) {
+    *status = MLP_STATUS_INVALID_HARDCODE;
+    return NULL;
+  }
   const size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
   const size_t layer_size_count = layer_size->layer_size_count;
-  if (layer_sizes_ref == NULL || layer_size_count < 2U) { return NULL; }
+  if (layer_sizes_ref == NULL || layer_size_count < 2U) {
+    *status = MLP_STATUS_INVALID_ARGUMENT;
+    return NULL;
+  }
 
   // allocate layers and addr offsets
   // need layer_full_size and layer_offsets
   struct mlp_field_offsets *field_offsets_obj =
       get_field_offsets(layer_size_count);
-  if (field_offsets_obj == NULL) { return NULL; }
+  if (field_offsets_obj == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
+    return NULL;
+  }
   const size_t field_offset_count = field_offsets_obj->field_offset_count;
   const size_t *field_offsets = field_offsets_obj->field_offsets;
   if (field_offset_count < 1U) {
     mlp_destory_field_offsets(field_offsets_obj);
+    *status = MLP_STATUS_INVALID_HARDCODE;
     return NULL;
   }
   if (field_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     return NULL;
   }
   const size_t layer_full_size = field_offsets[field_offset_count - 1U];
   if (SIZE_MAX / sizeof(size_t) < layer_full_size ||
       SIZE_MAX / sizeof(float *) < layer_full_size) {
     mlp_destory_field_offsets(field_offsets_obj);
+    *status = MLP_STATUS_INT_OVERFLOW;
     return NULL;
   }
   size_t *addr_offsets = (size_t *)malloc(layer_full_size * sizeof(size_t));
   if (addr_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     return NULL;
   }
   float **layers = (float **)malloc(layer_full_size * sizeof(float *));
   if (layers == NULL) {
     free(addr_offsets);
     mlp_destory_field_offsets(field_offsets_obj);
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     return NULL;
   }
 
@@ -70,12 +84,18 @@ mlp_create_double_layer(bool has_extra_double_buffers,
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
+      *status = MLP_STATUS_INVALID_ARGUMENT;
       return NULL;
     }
   }
   for (i = 0; i < layer_full_size; ++i) {
     result = get_current_size(i, layer_sizes_ref, field_offsets, &current_size);
     if (result != 0) {
+      if (result == 1) {
+        *status = MLP_STATUS_INT_OVERFLOW;
+      } else {
+        *status = MLP_STATUS_ALLOCATION_FAILED;
+      }
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
@@ -85,6 +105,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
+      *status = MLP_STATUS_INT_OVERFLOW;
       return NULL;
     }
     // get address offset
@@ -97,6 +118,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
+    *status = MLP_STATUS_INVALID_ARGUMENT;
     return NULL;
   }
   for (i = 0; i < layer_size_count; ++i) {
@@ -111,6 +133,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
+      *status = MLP_STATUS_INT_OVERFLOW;
       return NULL;
     }
     offset_sum += 2U * max_layer_size;
@@ -122,6 +145,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
+    *status = MLP_STATUS_INT_OVERFLOW;
     return NULL;
   }
   float *elements = (float *)malloc(offset_sum * sizeof(float));
@@ -129,6 +153,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     return NULL;
   }
 
@@ -153,6 +178,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
     mlp_destory_field_offsets(field_offsets_obj);
     free(elements);
     free(layers);
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     return NULL;
   }
 
@@ -160,6 +186,7 @@ mlp_create_double_layer(bool has_extra_double_buffers,
   ret->elements_begin = elements;
   ret->elements_end = elements + offset_sum;
   ret->field_offsets = field_offsets_obj;
+  *status = MLP_STATUS_SUCCESS;
 
   return ret;
 }

@@ -1,3 +1,4 @@
+#include "mlp.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -28,18 +29,20 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
   return false;
 }
 
-// WARN: mlp will store pointer layer_sizes, so DO NOT free it before mlp been
-// free.
+// WARN: mlp will store poenum mlp_status er layer_sizes, so DO NOT free it
+// before mlp been free.
 struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
-                                   size_t layer_size_count) {
+                                   size_t layer_size_count,
+                                   enum mlp_status *status) {
   const struct mlp_creation_functions funcs = {mlp_model_get_field_offsets,
                                                mlp_model_get_current_size};
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(true, &funcs, &layer_size_data);
-  if (dl == NULL) { return NULL; }
+      mlp_create_double_layer(true, &funcs, &layer_size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -47,6 +50,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
 
   struct mlp_model *mlp = (struct mlp_model *)malloc(sizeof(struct mlp_model));
   if (mlp == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -69,6 +73,7 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
   dl->layers = NULL;
   dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
+  *status = MLP_STATUS_SUCCESS;
   return mlp;
 }
 
@@ -80,8 +85,11 @@ void mlp_destroy_model(struct mlp_model *model) {
 }
 
 struct mlp_backward_buffer *
-mlp_create_backward_buffer(struct mlp_model *model) {
-  if (model == NULL) { return NULL; }
+mlp_create_backward_buffer(struct mlp_model *model, enum mlp_status *status) {
+  if (model == NULL) {
+    *status = MLP_STATUS_INVALID_ARGUMENT;
+    return NULL;
+  }
 
   size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
@@ -92,9 +100,10 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, &layer_size_data);
-  if (dl == NULL) { return NULL; }
+      mlp_create_double_layer(false, &funcs, &layer_size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -103,6 +112,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   struct mlp_backward_buffer *buffer =
       (struct mlp_backward_buffer *)malloc(sizeof(struct mlp_backward_buffer));
   if (buffer == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -117,6 +127,7 @@ mlp_create_backward_buffer(struct mlp_model *model) {
   dl->layers = NULL;
   dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
+  *status = MLP_STATUS_SUCCESS;
   return buffer;
 }
 
@@ -128,8 +139,11 @@ void mlp_destroy_backward_buffer(struct mlp_backward_buffer *buffer) {
 }
 
 struct mlp_gradient_buffer *
-mlp_create_gradient_buffer(struct mlp_model *model) {
-  if (model == NULL) { return NULL; }
+mlp_create_gradient_buffer(struct mlp_model *model, enum mlp_status *status) {
+  if (model == NULL) {
+    *status = MLP_STATUS_INVALID_ARGUMENT;
+    return NULL;
+  }
 
   size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
@@ -140,9 +154,10 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
                                                       layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, &layer_size_data);
-  if (dl == NULL) { return NULL; }
+      mlp_create_double_layer(false, &funcs, &layer_size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -151,6 +166,7 @@ mlp_create_gradient_buffer(struct mlp_model *model) {
   struct mlp_gradient_buffer *buffer =
       (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
   if (buffer == NULL) {
+    *status = MLP_STATUS_ALLOCATION_FAILED;
     mlp_destory_double_layer(dl);
     return NULL;
   }
@@ -174,51 +190,54 @@ void mlp_destroy_gradient_buffer(struct mlp_gradient_buffer *buffer) {
   free(buffer);
 }
 
-int mlp_set_learning_rate(struct mlp_model *model, float learning_rate) {
-  if (model == NULL) { return 1; }
+enum mlp_status mlp_set_learning_rate(struct mlp_model *model,
+                                      float learning_rate) {
+  if (model == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
   model->learning_rate = learning_rate;
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
 
-int mlp_set_activation_fns_ref(struct mlp_model *model,
-                               float (**activation_fns_ref)(float)) {
-  if (model == NULL) { return 1; }
-  if (activation_fns_ref == NULL) { return 2; }
+enum mlp_status
+mlp_set_activation_fns_ref(struct mlp_model *model,
+                           float (**activation_fns_ref)(float)) {
+  if (model == NULL || activation_fns_ref == NULL) {
+    return MLP_STATUS_INVALID_ARGUMENT;
+  }
   model->activation_funcs_ref = activation_fns_ref;
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
 
-int mlp_fill_biases(struct mlp_model *model, const float value) {
-  if (model == NULL) { return 1; }
+enum mlp_status mlp_fill_biases(struct mlp_model *model, const float value) {
+  if (model == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
   float *begin = model->bias_layers[0U], *end = model->layer_data.elements_end;
-  if (begin == NULL || end == NULL) { return 2; }
+  if (begin == NULL || end == NULL) { return MLP_STATUS_INVALID_STATE; }
   float *i;
   for (i = begin; i < end; ++i) {
     *i = value;
   }
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
 
-int mlp_fill_weights(struct mlp_model *model, const float value) {
-  if (model == NULL) { return 1; }
+enum mlp_status mlp_fill_weights(struct mlp_model *model, const float value) {
+  if (model == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
   float *begin = model->weight_layers[0U], *end = model->bias_layers[0U];
-  if (begin == NULL || end == NULL) { return 2; }
+  if (begin == NULL || end == NULL) { return MLP_STATUS_INVALID_STATE; }
   float *i;
   for (i = begin; i < end; ++i) {
     *i = value;
   }
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
 
-int mlp_forward(struct mlp_model *model,
-                struct mlp_backward_buffer *backward_buffer, float const *input,
-                float *output) {
+enum mlp_status mlp_forward(struct mlp_model *model,
+                            struct mlp_backward_buffer *backward_buffer,
+                            float const *input, float *output) {
   struct mlp_backward_buffer *local_backward_buffer = backward_buffer;
-  if (model == NULL || input == NULL) { return 1; }
+  if (model == NULL || input == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
   if (local_backward_buffer != NULL &&
       is_metadata_not_same(&model->layer_metadata,
                            &local_backward_buffer->layer_metadata)) {
-    return 2;
+    return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
   const size_t max_layer_idx = model->layer_metadata.layer_size_count - 1U;
@@ -229,10 +248,10 @@ int mlp_forward(struct mlp_model *model,
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || buffers == NULL || biases == NULL ||
       weights == NULL || activation_funcs_ref == NULL) {
-    return 3;
+    return MLP_STATUS_INVALID_FIELD;
   }
   float *const input_layer = buffers[0U];
-  if (input_layer == NULL) { return 4; }
+  if (input_layer == NULL) { return MLP_STATUS_INVALID_LAYER; }
 
   size_t i, j, k;
   float **layers = NULL, **raw_output_layers = NULL;
@@ -277,7 +296,7 @@ int mlp_forward(struct mlp_model *model,
 
     if (current_layer == NULL || next_layer == NULL || weight == NULL ||
         bias == NULL || activation_function == NULL) {
-      return 4;
+      return MLP_STATUS_INVALID_LAYER;
     }
 
     for (j = 0U; j < front_layer_size; ++j) {
@@ -305,22 +324,22 @@ int mlp_forward(struct mlp_model *model,
       output[i] = final_layer[i];
     }
   }
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
 
-int mlp_backward(struct mlp_model *model,
-                 struct mlp_backward_buffer *backward_buffer,
-                 struct mlp_gradient_buffer *gradient_output,
-                 const float *const answer) {
+enum mlp_status mlp_backward(struct mlp_model *model,
+                             struct mlp_backward_buffer *backward_buffer,
+                             struct mlp_gradient_buffer *gradient_output,
+                             const float *const answer) {
   if (model == NULL || backward_buffer == NULL || gradient_output == NULL ||
       answer == NULL) {
-    return 1;
+    return MLP_STATUS_INVALID_ARGUMENT;
   }
   if (is_metadata_not_same(&model->layer_metadata,
                            &backward_buffer->layer_metadata) ||
       is_metadata_not_same(&model->layer_metadata,
                            &gradient_output->layer_metadata)) {
-    return 2;
+    return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
   const float learn_rate = model->learning_rate;
@@ -337,12 +356,14 @@ int mlp_backward(struct mlp_model *model,
   if (layer_sizes == NULL || layers == NULL || raw_output_layers == NULL ||
       gradient_layers == NULL || bias_layers == NULL || weight_layers == NULL ||
       activation_funcs_ref == NULL) {
-    return 3;
+    return MLP_STATUS_INVALID_FIELD;
   }
 
   float *const final_output_layer = layers[last_layer_idx];
   float *const final_backward_layer = gradient_layers[last_layer_idx - 1U];
-  if (final_output_layer == NULL || final_backward_layer == NULL) { return 4; }
+  if (final_output_layer == NULL || final_backward_layer == NULL) {
+    return MLP_STATUS_INVALID_LAYER;
+  }
 
   size_t i, j, k;
   for (i = 0; i < layer_sizes[last_layer_idx]; ++i) {
@@ -372,12 +393,12 @@ int mlp_backward(struct mlp_model *model,
     if (layer == NULL || output_layer == NULL ||
         current_backward_layer == NULL || weights == NULL || biases == NULL ||
         activation_function == NULL) {
-      return 4;
+      return MLP_STATUS_INVALID_LAYER;
     }
 
     if (i > 0U) {
       last_backward_layer = gradient_layers[i - 1U];
-      if (last_backward_layer == NULL) { return 4; }
+      if (last_backward_layer == NULL) { return MLP_STATUS_INVALID_LAYER; }
     }
 
     for (j = 0U; j < front_layer_size; ++j) {
@@ -413,5 +434,5 @@ int mlp_backward(struct mlp_model *model,
     }
   }
 
-  return 0;
+  return MLP_STATUS_SUCCESS;
 }
