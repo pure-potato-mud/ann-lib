@@ -179,7 +179,7 @@ void test_mlp_fill_weights(void) {
 
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
 
-  int i;
+  size_t i;
   for (i = 0U; i < 6U; ++i) {
     float weight_first_layer = model->weight_layers[0U][i],
           weight_second_layer = model->weight_layers[1U][i];

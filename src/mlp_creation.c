@@ -294,6 +294,7 @@ mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
 int mlp_gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                          const size_t *field_offsets,
                                          size_t *current_size) {
+  (void)field_offsets;
   *current_size = layer_sizes[i + 1U];
   return 0;
 }
