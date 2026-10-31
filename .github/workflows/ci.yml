@@ -21,3 +21,5 @@ jobs:
         run: cmake --build build --parallel
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+        env:
+          ASAN_OPTIONS: allocator_may_return_null=1
