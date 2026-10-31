@@ -178,21 +178,23 @@ struct mlp_field_offsets *mlp_model_get_field_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U;
 
-  const size_t data_size = 3U;
-  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
-  if (data == NULL) { return NULL; }
-  data[0U] = layer_full_size;
-  data[1U] = 2U;
-  data[2U] = layer_size_count + 1U;
+  const size_t data[] = {layer_full_size, 2U, layer_size_count + 1U};
+  const size_t data_size = sizeof(data) / sizeof(size_t);
+  size_t *copied_data = (size_t *)malloc(data_size * sizeof(size_t));
+  if (copied_data == NULL) { return NULL; }
+  size_t i;
+  for (i = 0; i < data_size; ++i) {
+    copied_data[i] = data[i];
+  }
 
   struct mlp_field_offsets *ret =
       (struct mlp_field_offsets *)malloc(sizeof(struct mlp_field_offsets));
   if (ret == NULL) {
-    free(data);
+    free(copied_data);
     return NULL;
   }
 
-  ret->field_offsets = data;
+  ret->field_offsets = copied_data;
   ret->field_offset_count = data_size;
 
   return ret;
@@ -228,20 +230,23 @@ mlp_backward_buffer_get_field_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count * 2U - 1U;
 
-  const size_t data_size = 2U;
-  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
-  if (data == NULL) { return NULL; }
-  data[0U] = layer_full_size;
-  data[1U] = layer_size_count;
+  const size_t data[] = {layer_full_size, layer_size_count};
+  const size_t data_size = sizeof(data) / sizeof(size_t);
+  size_t *copied_data = (size_t *)malloc(data_size * sizeof(size_t));
+  if (copied_data == NULL) { return NULL; }
+  size_t i;
+  for (i = 0; i < data_size; ++i) {
+    copied_data[i] = data[i];
+  }
 
   struct mlp_field_offsets *ret =
       (struct mlp_field_offsets *)malloc(sizeof(struct mlp_field_offsets));
   if (ret == NULL) {
-    free(data);
+    free(copied_data);
     return NULL;
   }
 
-  ret->field_offsets = data;
+  ret->field_offsets = copied_data;
   ret->field_offset_count = data_size;
 
   return ret;
@@ -264,19 +269,23 @@ mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
   const size_t layer_full_size = layer_size_count - 1U;
 
-  const size_t data_size = 1U;
-  size_t *data = (size_t *)malloc(data_size * sizeof(size_t));
-  if (data == NULL) { return NULL; }
-  data[0U] = layer_full_size;
+  const size_t data[] = {layer_full_size};
+  const size_t data_size = sizeof(data) / sizeof(size_t);
+  size_t *copied_data = (size_t *)malloc(data_size * sizeof(size_t));
+  if (copied_data == NULL) { return NULL; }
+  size_t i;
+  for (i = 0; i < data_size; ++i) {
+    copied_data[i] = data[i];
+  }
 
   struct mlp_field_offsets *ret =
       (struct mlp_field_offsets *)malloc(sizeof(struct mlp_field_offsets));
   if (ret == NULL) {
-    free(data);
+    free(copied_data);
     return NULL;
   }
 
-  ret->field_offsets = data;
+  ret->field_offsets = copied_data;
   ret->field_offset_count = data_size;
 
   return ret;
