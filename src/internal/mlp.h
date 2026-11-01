@@ -29,6 +29,7 @@ struct mlp_model {
 struct mlp_backward_buffer {
   struct mlp_layer_metadata layer_metadata;
   struct mlp_layer_data layer_data;
+  float **compute;           // compute result temp(2)
   float **layers;            // layers(N)
   float **raw_output_layers; // raw output(N-1)
 };
@@ -36,7 +37,8 @@ struct mlp_backward_buffer {
 struct mlp_gradient_buffer {
   struct mlp_layer_metadata layer_metadata;
   struct mlp_layer_data layer_data;
-  float **gradient_layers; // gradients(N-1)
+  float **weight_gradient_layers;
+  float **bias_gradient_layers;
 };
 
 #endif /* INTERNAL_MLP_H_ */

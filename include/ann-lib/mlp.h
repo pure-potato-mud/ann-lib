@@ -95,9 +95,13 @@ mlp_status_t mlp_forward(mlp_model_t *model,
 
 // do backpropagation.
 // the MLP(and it's members), backward_buffer and answer cannot be NULL.
-mlp_status_t mlp_backward(mlp_model_t *model,
-                          mlp_backward_buffer_t *backward_buffer,
+mlp_status_t mlp_backward(const mlp_model_t *model,
+                          const mlp_backward_buffer_t *backward_buffer,
                           mlp_gradient_buffer_t *gradient_output,
-                          float const *answer);
+                          float const *gradients);
+
+mlp_status_t
+mlp_update_parameters_sgd(mlp_model_t *model,
+                          const mlp_gradient_buffer_t *gradient_output);
 
 #endif /* ann_lib_mlp_h_ */

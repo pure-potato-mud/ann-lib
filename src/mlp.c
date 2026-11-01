@@ -15,8 +15,8 @@ void mlp_destroy_content_of_layer_data(struct mlp_layer_data *layer_data) {
 // return true any one or its layer_sizes_ref is NULL.
 // and check content, false if layer_size_count and layer_sizes_ref are both
 // same.
-bool is_metadata_not_same(struct mlp_layer_metadata *a,
-                          struct mlp_layer_metadata *b) {
+bool is_metadata_not_same(const struct mlp_layer_metadata *a,
+                          const struct mlp_layer_metadata *b) {
   if (a == NULL || b == NULL) { return true; }
   if (a->layer_size_count != b->layer_size_count) { return true; }
   if (a->layer_sizes_ref == NULL || b->layer_sizes_ref == NULL) { return true; }
@@ -95,7 +95,7 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
       mlp_backward_buffer_get_field_offsets,
       mlp_backward_buffer_get_current_size};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, size_data, status);
+      mlp_create_double_layer(true, &funcs, size_data, status);
   if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     *status = MLP_STATUS_ALLOCATION_FAILED;
@@ -117,8 +117,9 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->layer_data.elements_end = dl->elements_end;
-  buffer->layers = layers;
-  buffer->raw_output_layers = layers + dl->field_offsets->field_offsets[0U];
+  buffer->compute = layers;
+  buffer->layers = layers + dl->field_offsets->field_offsets[0U];
+  buffer->raw_output_layers = layers + dl->field_offsets->field_offsets[1U];
 
   dl->layers = NULL;
   dl->elements_begin = NULL;
@@ -167,7 +168,8 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->layer_data.elements_end = dl->elements_end;
-  buffer->gradient_layers = layers;
+  buffer->weight_gradient_layers = layers;
+  buffer->bias_gradient_layers = layers + dl->field_offsets->field_offsets[0U];
 
   dl->layers = NULL;
   dl->elements_begin = NULL;
@@ -229,8 +231,10 @@ enum mlp_status mlp_fill_weights(struct mlp_model *model, const float value) {
 
 enum mlp_status mlp_clear_gradient_buffer(struct mlp_gradient_buffer *buffer) {
   if (buffer == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
-  if (buffer->gradient_layers == NULL) { return MLP_STATUS_INVALID_FIELD; }
-  float *begin = buffer->gradient_layers[0U],
+  if (buffer->weight_gradient_layers == NULL) {
+    return MLP_STATUS_INVALID_FIELD;
+  }
+  float *begin = buffer->weight_gradient_layers[0U],
         *end = buffer->layer_data.elements_end;
   if (begin == NULL) { return MLP_STATUS_INVALID_LAYER; }
   if (end == NULL) { return MLP_STATUS_INVALID_STATE; }
@@ -244,8 +248,10 @@ enum mlp_status mlp_clear_gradient_buffer(struct mlp_gradient_buffer *buffer) {
 enum mlp_status mlp_scale_gradients(struct mlp_gradient_buffer *buffer,
                                     float scalar) {
   if (buffer == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
-  if (buffer->gradient_layers == NULL) { return MLP_STATUS_INVALID_FIELD; }
-  float *begin = buffer->gradient_layers[0U],
+  if (buffer->weight_gradient_layers == NULL) {
+    return MLP_STATUS_INVALID_FIELD;
+  }
+  float *begin = buffer->weight_gradient_layers[0U],
         *end = buffer->layer_data.elements_end;
   if (begin == NULL) { return MLP_STATUS_INVALID_LAYER; }
   if (end == NULL) { return MLP_STATUS_INVALID_STATE; }
@@ -354,56 +360,53 @@ enum mlp_status mlp_forward(struct mlp_model *model,
   return MLP_STATUS_SUCCESS;
 }
 
-enum mlp_status mlp_backward(struct mlp_model *model,
-                             struct mlp_backward_buffer *backward_buffer,
-                             struct mlp_gradient_buffer *gradient_output,
-                             const float *const answer) {
-  if (model == NULL || backward_buffer == NULL || gradient_output == NULL ||
-      answer == NULL) {
+enum mlp_status mlp_backward(const struct mlp_model *model,
+                             const struct mlp_backward_buffer *backward_buffer,
+                             struct mlp_gradient_buffer *gradient_output_buffer,
+                             const float *const gradients) {
+  if (model == NULL || backward_buffer == NULL ||
+      gradient_output_buffer == NULL || gradients == NULL) {
     return MLP_STATUS_INVALID_ARGUMENT;
   }
   if (is_metadata_not_same(&model->layer_metadata,
                            &backward_buffer->layer_metadata) ||
       is_metadata_not_same(&model->layer_metadata,
-                           &gradient_output->layer_metadata)) {
+                           &gradient_output_buffer->layer_metadata)) {
     return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
-  const float learn_rate = model->learning_rate;
   const size_t layer_size_count = model->layer_metadata.layer_size_count;
   const size_t last_layer_idx = layer_size_count - 1U;
 
   const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  float **const compute_buffer = backward_buffer->compute;
   float **const layers = backward_buffer->layers;
   float **const raw_output_layers = backward_buffer->raw_output_layers;
-  float **const gradient_layers = gradient_output->gradient_layers;
-  float **const bias_layers = model->bias_layers;
+  float **const weight_gradient_layers =
+      gradient_output_buffer->weight_gradient_layers;
+  float **const bias_gradient_layers =
+      gradient_output_buffer->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
-  if (layer_sizes == NULL || layers == NULL || raw_output_layers == NULL ||
-      gradient_layers == NULL || bias_layers == NULL || weight_layers == NULL ||
+  if (layer_sizes == NULL || compute_buffer == NULL || layers == NULL ||
+      raw_output_layers == NULL || weight_gradient_layers == NULL ||
+      bias_gradient_layers == NULL || weight_layers == NULL ||
       activation_funcs_ref == NULL) {
     return MLP_STATUS_INVALID_FIELD;
   }
 
-  float *const final_output_layer = layers[last_layer_idx];
-  float *const final_backward_layer = gradient_layers[last_layer_idx - 1U];
-  if (final_output_layer == NULL || final_backward_layer == NULL) {
-    return MLP_STATUS_INVALID_LAYER;
-  }
-
+  float *final_backward_layer = compute_buffer[last_layer_idx % 2U];
+  if (final_backward_layer == NULL) { return MLP_STATUS_INVALID_LAYER; }
   size_t i, j, k;
   for (i = 0; i < layer_sizes[last_layer_idx]; ++i) {
-    // L(a) = 0.5 * (a - y)^2
-    // L'(a) = a - y
-    // y is for expect output
-    final_backward_layer[i] = (final_output_layer[i] - answer[i]);
+    final_backward_layer[i] = gradients[i];
   }
 
   size_t back_layer_size, front_layer_size;
   size_t j_idx;
-  float *layer = NULL, *output_layer = NULL, *current_backward_layer = NULL,
-        *last_backward_layer = NULL, *weights = NULL, *biases = NULL;
+  float *layer = NULL, *output_layer = NULL, *current_backward_buffer = NULL,
+        *last_backward_buffer = NULL, *weight_gradient_layer = NULL,
+        *bias_gradient_layer = NULL, *weights = NULL;
   float (*activation_function)(float) = NULL;
   for (i = last_layer_idx; i > 0U;) {
     --i;
@@ -412,20 +415,18 @@ enum mlp_status mlp_backward(struct mlp_model *model,
     back_layer_size = layer_sizes[i];
 
     layer = layers[i];
-    current_backward_layer = gradient_layers[i];
+    current_backward_buffer = compute_buffer[(i + 1U) % 2U];
+    last_backward_buffer = compute_buffer[i % 2U];
+    weight_gradient_layer = weight_gradient_layers[i];
+    bias_gradient_layer = bias_gradient_layers[i];
     output_layer = raw_output_layers[i];
     weights = weight_layers[i];
-    biases = bias_layers[i];
     activation_function = activation_funcs_ref[i];
-    if (layer == NULL || output_layer == NULL ||
-        current_backward_layer == NULL || weights == NULL || biases == NULL ||
-        activation_function == NULL) {
+    if (layer == NULL || current_backward_buffer == NULL ||
+        last_backward_buffer == NULL || weight_gradient_layer == NULL ||
+        bias_gradient_layer == NULL || output_layer == NULL ||
+        weights == NULL || activation_function == NULL) {
       return MLP_STATUS_INVALID_LAYER;
-    }
-
-    if (i > 0U) {
-      last_backward_layer = gradient_layers[i - 1U];
-      if (last_backward_layer == NULL) { return MLP_STATUS_INVALID_LAYER; }
     }
 
     for (j = 0U; j < front_layer_size; ++j) {
@@ -436,7 +437,7 @@ enum mlp_status mlp_backward(struct mlp_model *model,
       // n is for any part, there are weight(w), input(x) and bias(b).
 
       // = dL/da * da/dz
-      current_backward_layer[j] *=
+      current_backward_buffer[j] *=
           (activation_function(output_layer[j] + 4.76837e-7f) -
            activation_function(output_layer[j] - 4.76837e-7f)) /
           9.53674e-7f;
@@ -444,20 +445,81 @@ enum mlp_status mlp_backward(struct mlp_model *model,
       j_idx = j * back_layer_size;
       for (k = 0U; k < back_layer_size; ++k) {
 
-        // pass gradiant to last layer first
+        // pass gradient to last layer first
         // dz/dx = w
-        if (i > 0U) {
-          last_backward_layer[k] =
-              (j == 0U ? 0.0f : last_backward_layer[k]) +
-              weights[j_idx + k] * current_backward_layer[j];
-        }
+        last_backward_buffer[k] =
+            (j == 0U ? 0.0f : last_backward_buffer[k]) +
+            weights[j_idx + k] * current_backward_buffer[j];
 
         // dz/dw = x
-        weights[j_idx + k] -= learn_rate * layer[k] * current_backward_layer[j];
+        weight_gradient_layer[j_idx + k] +=
+            layer[k] * current_backward_buffer[j];
       }
 
       // dz/db = 1
-      biases[j] -= learn_rate * current_backward_layer[j];
+      bias_gradient_layer[j] += current_backward_buffer[j];
+    }
+  }
+
+  return MLP_STATUS_SUCCESS;
+}
+
+enum mlp_status
+mlp_update_parameters_sgd(mlp_model_t *model,
+                          const mlp_gradient_buffer_t *gradient_output) {
+  if (model == NULL || gradient_output == NULL) {
+    return MLP_STATUS_INVALID_ARGUMENT;
+  }
+  if (is_metadata_not_same(&model->layer_metadata,
+                           &gradient_output->layer_metadata)) {
+    return MLP_STATUS_TOPOLOGY_MISMATCH;
+  }
+
+  const float learn_rate = model->learning_rate;
+  const size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const size_t last_layer_idx = layer_size_count - 1U;
+
+  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  float **const weight_gradient_layers =
+      gradient_output->weight_gradient_layers;
+  float **const bias_gradient_layers = gradient_output->bias_gradient_layers;
+  float **const weight_layers = model->weight_layers;
+  float **const bias_layers = model->bias_layers;
+  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
+  if (layer_sizes == NULL || weight_gradient_layers == NULL ||
+      bias_gradient_layers == NULL || weight_layers == NULL ||
+      bias_layers == NULL || activation_funcs_ref == NULL) {
+    return MLP_STATUS_INVALID_FIELD;
+  }
+
+  size_t i, j, k;
+  size_t back_layer_size, front_layer_size;
+  size_t j_idx;
+  float *weight_gradient_layer = NULL, *bias_gradient_layer = NULL,
+        *weights = NULL, *biases = NULL;
+  float (*activation_function)(float) = NULL;
+  for (i = last_layer_idx; i > 0U;) {
+    --i;
+
+    front_layer_size = layer_sizes[i + 1U];
+    back_layer_size = layer_sizes[i];
+
+    weight_gradient_layer = weight_gradient_layers[i];
+    bias_gradient_layer = bias_gradient_layers[i];
+    weights = weight_layers[i];
+    biases = bias_layers[i];
+    activation_function = activation_funcs_ref[i];
+    if (weight_gradient_layer == NULL || bias_gradient_layer == NULL ||
+        weights == NULL || biases == NULL || activation_function == NULL) {
+      return MLP_STATUS_INVALID_LAYER;
+    }
+
+    for (j = 0U; j < front_layer_size; ++j) {
+      j_idx = j * back_layer_size;
+      for (k = 0U; k < back_layer_size; ++k) {
+        weights[j_idx + k] -= learn_rate * weight_gradient_layer[j_idx + k];
+      }
+      biases[j] -= learn_rate * bias_gradient_layer[j];
     }
   }
 
