@@ -117,6 +117,7 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
   buffer->layer_metadata.layer_sizes_ref = size_data->layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
+  buffer->layer_data.elements_end = dl->elements_end;
   buffer->layers = layers;
   buffer->raw_output_layers = layers + dl->field_offsets->field_offsets[0U];
 
@@ -166,6 +167,7 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
   buffer->layer_metadata.layer_sizes_ref = size_data->layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
+  buffer->layer_data.elements_end = dl->elements_end;
   buffer->gradient_layers = layers;
 
   dl->layers = NULL;

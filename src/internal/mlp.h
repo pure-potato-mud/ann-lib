@@ -7,7 +7,7 @@
 
 struct mlp_layer_metadata {
   size_t layer_size_count;
-  const size_t *layer_sizes_ref;
+  size_t *layer_sizes_ref;
 };
 
 struct mlp_layer_data {
