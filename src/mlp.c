@@ -228,6 +228,35 @@ enum mlp_status mlp_fill_weights(struct mlp_model *model, const float value) {
   return MLP_STATUS_SUCCESS;
 }
 
+enum mlp_status mlp_clear_gradient_buffer(struct mlp_gradient_buffer *buffer) {
+  if (buffer == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
+  if (buffer->gradient_layers == NULL) { return MLP_STATUS_INVALID_FIELD; }
+  float *begin = buffer->gradient_layers[0U],
+        *end = buffer->layer_data.elements_end;
+  if (begin == NULL) { return MLP_STATUS_INVALID_LAYER; }
+  if (end == NULL) { return MLP_STATUS_INVALID_STATE; }
+  float *i;
+  for (i = begin; i < end; ++i) {
+    *i = 0.0f;
+  }
+  return MLP_STATUS_SUCCESS;
+}
+
+enum mlp_status mlp_scale_gradients(struct mlp_gradient_buffer *buffer,
+                                    float scalar) {
+  if (buffer == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
+  if (buffer->gradient_layers == NULL) { return MLP_STATUS_INVALID_FIELD; }
+  float *begin = buffer->gradient_layers[0U],
+        *end = buffer->layer_data.elements_end;
+  if (begin == NULL) { return MLP_STATUS_INVALID_LAYER; }
+  if (end == NULL) { return MLP_STATUS_INVALID_STATE; }
+  float *i;
+  for (i = begin; i < end; ++i) {
+    *i *= scalar;
+  }
+  return MLP_STATUS_SUCCESS;
+}
+
 enum mlp_status mlp_forward(struct mlp_model *model,
                             struct mlp_backward_buffer *backward_buffer,
                             float const *input, float *output) {

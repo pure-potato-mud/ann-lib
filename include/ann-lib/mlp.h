@@ -79,6 +79,12 @@ mlp_status_t mlp_fill_biases(mlp_model_t *model, float value);
 // MLP and it's weights field cannot be NULL.
 mlp_status_t mlp_fill_weights(mlp_model_t *model, float value);
 
+// fill all element in gradient buffer to zero.
+mlp_status_t mlp_clear_gradient_buffer(mlp_gradient_buffer_t *buffer);
+
+// times a scaler for each element in gradient_buffer.
+mlp_status_t mlp_scale_gradients(mlp_gradient_buffer_t *buffer, float scalar);
+
 // do forward propagation.
 // the MLP(and it's members) and the input cannot be NULL, but the output can.
 // the output will be fill in values if it is not NULL.
