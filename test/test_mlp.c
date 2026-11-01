@@ -1,4 +1,3 @@
-#include "ann-lib/mlp.h"
 #include <stdbool.h>
 
 #include <unity.h>
