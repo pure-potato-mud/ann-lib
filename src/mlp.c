@@ -209,8 +209,10 @@ mlp_set_activation_fns_ref(struct mlp_model *model,
 
 enum mlp_status mlp_fill_biases(struct mlp_model *model, const float value) {
   if (model == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
+  if (model->bias_layers == NULL) { return MLP_STATUS_INVALID_FIELD; }
   float *begin = model->bias_layers[0U], *end = model->layer_data.elements_end;
-  if (begin == NULL || end == NULL) { return MLP_STATUS_INVALID_STATE; }
+  if (begin == NULL) { return MLP_STATUS_INVALID_LAYER; }
+  if (end == NULL) { return MLP_STATUS_INVALID_STATE; }
   float *i;
   for (i = begin; i < end; ++i) {
     *i = value;
@@ -220,8 +222,11 @@ enum mlp_status mlp_fill_biases(struct mlp_model *model, const float value) {
 
 enum mlp_status mlp_fill_weights(struct mlp_model *model, const float value) {
   if (model == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
+  if (model->weight_layers == NULL || model->bias_layers == NULL) {
+    return MLP_STATUS_INVALID_FIELD;
+  }
   float *begin = model->weight_layers[0U], *end = model->bias_layers[0U];
-  if (begin == NULL || end == NULL) { return MLP_STATUS_INVALID_STATE; }
+  if (begin == NULL || end == NULL) { return MLP_STATUS_INVALID_LAYER; }
   float *i;
   for (i = begin; i < end; ++i) {
     *i = value;
