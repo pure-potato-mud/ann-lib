@@ -389,11 +389,11 @@ void test_mlp_forward(void) {
 }
 
 void test_mlp_forward_different_model_metadata(void) {
-  model = mlp_create_model(&size_data, &status);
+  model = mlp_create_model(&size_data_another, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  backward_buffer = mlp_create_backward_buffer(&size_data_another, &status);
+  backward_buffer = mlp_create_backward_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(backward_buffer);
   TEST_ASSERT_UNLESS(status);
 
