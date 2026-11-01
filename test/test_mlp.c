@@ -10,11 +10,8 @@ static float leaky_relu(float value) {
 }
 
 static struct mlp_model *model;
-static struct mlp_model *model_another;
 static struct mlp_backward_buffer *backward_buffer;
-static struct mlp_backward_buffer *backward_buffer_another;
 static struct mlp_gradient_buffer *gradient_buffer;
-static struct mlp_gradient_buffer *gradient_buffer_another;
 static enum mlp_status status;
 
 static const float input[2] = {0.5f, 2.0f}, answer[2] = {1.0f, 0.0f};
@@ -32,21 +29,15 @@ static const struct mlp_layer_size_data size_data_another = {
 
 void setUp() {
   model = NULL;
-  model_another = NULL;
   backward_buffer = NULL;
-  backward_buffer_another = NULL;
   gradient_buffer = NULL;
-  gradient_buffer_another = NULL;
   status = -1;
 }
 
 void tearDown() {
   mlp_destroy_model(model);
-  mlp_destroy_model(model_another);
   mlp_destroy_backward_buffer(backward_buffer);
-  mlp_destroy_backward_buffer(backward_buffer_another);
   mlp_destroy_gradient_buffer(gradient_buffer);
-  mlp_destroy_gradient_buffer(gradient_buffer_another);
 }
 
 void test_mlp_create_model(void) {
@@ -401,9 +392,6 @@ void test_mlp_forward_different_model_metadata(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
-  model_another = mlp_create_model(&size_data_another, &status);
-  TEST_ASSERT_NOT_NULL(model_another);
-  TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
   backward_buffer = mlp_create_backward_buffer(&size_data_another, &status);
   TEST_ASSERT_NOT_NULL(backward_buffer);
@@ -416,9 +404,6 @@ void test_mlp_forward_different_model_metadata(void) {
 void test_mlp_forward_different_backward_buffer_metadata(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
-  TEST_ASSERT_UNLESS(status);
-  model_another = mlp_create_model(&size_data_another, &status);
-  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
   backward_buffer = mlp_create_backward_buffer(&size_data_another, &status);
@@ -552,11 +537,8 @@ void test_mlp_backward(void) {
 }
 
 void test_mlp_backward_different_model_metadata(void) {
-  model = mlp_create_model(&size_data, &status);
+  model = mlp_create_model(&size_data_another, &status);
   TEST_ASSERT_NOT_NULL(model);
-  TEST_ASSERT_UNLESS(status);
-  model_another = mlp_create_model(&size_data_another, &status);
-  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(status);
   backward_buffer = mlp_create_backward_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(backward_buffer);
@@ -566,8 +548,7 @@ void test_mlp_backward_different_model_metadata(void) {
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
 
-  int result =
-      mlp_backward(model_another, backward_buffer, gradient_buffer, answer);
+  int result = mlp_backward(model, backward_buffer, gradient_buffer, answer);
 
   TEST_ASSERT_EQUAL_INT(MLP_STATUS_TOPOLOGY_MISMATCH, result);
 }
@@ -575,9 +556,6 @@ void test_mlp_backward_different_model_metadata(void) {
 void test_mlp_backward_different_backward_buffer_metadata(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
-  TEST_ASSERT_UNLESS(status);
-  model_another = mlp_create_model(&size_data_another, &status);
-  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(status);
   backward_buffer = mlp_create_backward_buffer(&size_data_another, &status);
   TEST_ASSERT_NOT_NULL(backward_buffer);
@@ -595,9 +573,6 @@ void test_mlp_backward_different_backward_buffer_metadata(void) {
 void test_mlp_backward_different_gradient_buffer_metadata(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
-  TEST_ASSERT_UNLESS(status);
-  model_another = mlp_create_model(&size_data_another, &status);
-  TEST_ASSERT_NOT_NULL(model_another);
   TEST_ASSERT_UNLESS(status);
   backward_buffer = mlp_create_backward_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(backward_buffer);
