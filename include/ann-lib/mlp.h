@@ -3,10 +3,16 @@
 
 #include <stddef.h>
 
+typedef struct mlp_layer_size_data mlp_layer_size_data_t;
 typedef struct mlp_model mlp_model_t;
 typedef struct mlp_backward_buffer mlp_backward_buffer_t;
 typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
 typedef enum mlp_status mlp_status_t;
+
+struct mlp_layer_size_data {
+  const size_t *layer_sizes_ref;
+  size_t layer_size_count;
+};
 
 enum mlp_status {
   MLP_STATUS_SUCCESS = 0,
@@ -26,8 +32,8 @@ enum mlp_status {
 // layer_sizes_ref before mlp been free.
 // layer_sizes_ref cannot be NULL and have no zero in it.
 // also, layer_size_count cannot be zero.
-mlp_model_t *mlp_create_model(const size_t *layer_sizes_ref,
-                              size_t layer_size_count, mlp_status_t *status);
+mlp_model_t *mlp_create_model(const mlp_layer_size_data_t *size_data,
+                              mlp_status_t *status);
 
 // free mlp_model safely.
 // NOTE: not include `*_ref`.
@@ -36,8 +42,9 @@ void mlp_destroy_model(mlp_model_t *model);
 // create a buffer for learning by reading the data of the mlp_model.
 // NOTE: the buffer will store same layer_sizes_ref as model stores, so DO NOT
 // free nor edit layer_sizes_ref before backward_buffer be freed.
-mlp_backward_buffer_t *mlp_create_backward_buffer(mlp_model_t *model,
-                                                  mlp_status_t *status);
+mlp_backward_buffer_t *
+mlp_create_backward_buffer(const mlp_layer_size_data_t *size_data,
+                           mlp_status_t *status);
 
 // free mlp_backward_buffer safely.
 void mlp_destroy_backward_buffer(mlp_backward_buffer_t *buffer);
@@ -45,8 +52,9 @@ void mlp_destroy_backward_buffer(mlp_backward_buffer_t *buffer);
 // create a buffer for store gradient compute result.
 // NOTE: the buffer will store same layer_sizes_ref as model stores, so DO NOT
 // free nor edit layer_sizes_ref before gradient_buffer be freed.
-mlp_gradient_buffer_t *mlp_create_gradient_buffer(mlp_model_t *model,
-                                                  mlp_status_t *status);
+mlp_gradient_buffer_t *
+mlp_create_gradient_buffer(const mlp_layer_size_data_t *size_data,
+                           mlp_status_t *status);
 
 // free mlp_gradient_buffer safely.
 void mlp_destroy_gradient_buffer(mlp_gradient_buffer_t *buffer);

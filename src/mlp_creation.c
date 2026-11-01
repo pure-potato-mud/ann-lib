@@ -291,7 +291,7 @@ int mlp_backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
 
 struct mlp_field_offsets *
 mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
-  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
+  if (SIZE_MAX < layer_size_count - 1U) { return NULL; }
   const size_t layer_full_size = layer_size_count - 1U;
 
   const size_t data[] = {layer_full_size};

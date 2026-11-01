@@ -31,15 +31,16 @@ bool is_metadata_not_same(struct mlp_layer_metadata *a,
 
 // WARN: mlp will store poenum mlp_status er layer_sizes, so DO NOT free it
 // before mlp been free.
-struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
-                                   size_t layer_size_count,
+struct mlp_model *mlp_create_model(const struct mlp_layer_size_data *size_data,
                                    enum mlp_status *status) {
+  if (size_data == NULL) {
+    *status = MLP_STATUS_INVALID_ARGUMENT;
+    return NULL;
+  }
   const struct mlp_creation_functions funcs = {mlp_model_get_field_offsets,
                                                mlp_model_get_current_size};
-  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
-                                                      layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(true, &funcs, &layer_size_data, status);
+      mlp_create_double_layer(true, &funcs, size_data, status);
   if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     *status = MLP_STATUS_ALLOCATION_FAILED;
@@ -55,8 +56,8 @@ struct mlp_model *mlp_create_model(const size_t *layer_sizes_ref,
     return NULL;
   }
 
-  mlp->layer_metadata.layer_size_count = layer_size_count;
-  mlp->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  mlp->layer_metadata.layer_size_count = size_data->layer_size_count;
+  mlp->layer_metadata.layer_sizes_ref = size_data->layer_sizes_ref;
   mlp->layer_data.layers = dl->layers;
   mlp->layer_data.elements_begin = dl->elements_begin;
   mlp->layer_data.elements_end = dl->elements_end;
@@ -85,22 +86,17 @@ void mlp_destroy_model(struct mlp_model *model) {
 }
 
 struct mlp_backward_buffer *
-mlp_create_backward_buffer(struct mlp_model *model, enum mlp_status *status) {
-  if (model == NULL) {
+mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
+                           enum mlp_status *status) {
+  if (size_data == NULL) {
     *status = MLP_STATUS_INVALID_ARGUMENT;
     return NULL;
   }
-
-  size_t layer_size_count = model->layer_metadata.layer_size_count;
-  const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
-
   const struct mlp_creation_functions funcs = {
       mlp_backward_buffer_get_field_offsets,
       mlp_backward_buffer_get_current_size};
-  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
-                                                      layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, &layer_size_data, status);
+      mlp_create_double_layer(false, &funcs, size_data, status);
   if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     *status = MLP_STATUS_ALLOCATION_FAILED;
@@ -117,8 +113,8 @@ mlp_create_backward_buffer(struct mlp_model *model, enum mlp_status *status) {
     return NULL;
   }
 
-  buffer->layer_metadata.layer_size_count = layer_size_count;
-  buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  buffer->layer_metadata.layer_size_count = size_data->layer_size_count;
+  buffer->layer_metadata.layer_sizes_ref = size_data->layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->layers = layers;
@@ -139,22 +135,17 @@ void mlp_destroy_backward_buffer(struct mlp_backward_buffer *buffer) {
 }
 
 struct mlp_gradient_buffer *
-mlp_create_gradient_buffer(struct mlp_model *model, enum mlp_status *status) {
-  if (model == NULL) {
+mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
+                           enum mlp_status *status) {
+  if (size_data == NULL) {
     *status = MLP_STATUS_INVALID_ARGUMENT;
     return NULL;
   }
-
-  size_t layer_size_count = model->layer_metadata.layer_size_count;
-  const size_t *layer_sizes_ref = model->layer_metadata.layer_sizes_ref;
-
   const struct mlp_creation_functions funcs = {
       mlp_gradient_buffer_get_field_offsets,
       mlp_gradient_buffer_get_current_size};
-  const struct mlp_layer_size_data layer_size_data = {layer_sizes_ref,
-                                                      layer_size_count};
   struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, &layer_size_data, status);
+      mlp_create_double_layer(false, &funcs, size_data, status);
   if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     *status = MLP_STATUS_ALLOCATION_FAILED;
@@ -171,8 +162,8 @@ mlp_create_gradient_buffer(struct mlp_model *model, enum mlp_status *status) {
     return NULL;
   }
 
-  buffer->layer_metadata.layer_size_count = layer_size_count;
-  buffer->layer_metadata.layer_sizes_ref = layer_sizes_ref;
+  buffer->layer_metadata.layer_size_count = size_data->layer_size_count;
+  buffer->layer_metadata.layer_sizes_ref = size_data->layer_sizes_ref;
   buffer->layer_data.layers = dl->layers;
   buffer->layer_data.elements_begin = dl->elements_begin;
   buffer->gradient_layers = layers;
@@ -180,6 +171,7 @@ mlp_create_gradient_buffer(struct mlp_model *model, enum mlp_status *status) {
   dl->layers = NULL;
   dl->elements_begin = NULL;
   mlp_destory_double_layer(dl);
+  *status = MLP_STATUS_SUCCESS;
   return buffer;
 }
 
