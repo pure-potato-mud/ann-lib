@@ -83,7 +83,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INVALID_ARGUMENT;
+      if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
       return NULL;
     }
   }
@@ -91,9 +91,9 @@ struct mlp_double_layer *mlp_create_double_layer(
     result = get_current_size(i, layer_sizes_ref, field_offsets, &current_size);
     if (result != 0) {
       if (result == 1) {
-        *status = MLP_STATUS_INT_OVERFLOW;
+        if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       } else {
-        *status = MLP_STATUS_ALLOCATION_FAILED;
+        if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
       }
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
@@ -104,7 +104,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INT_OVERFLOW;
+      if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       return NULL;
     }
     // get address offset
@@ -117,7 +117,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_INVALID_ARGUMENT;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return NULL;
   }
   for (i = 0; i < layer_size_count; ++i) {
@@ -132,7 +132,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INT_OVERFLOW;
+      if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       return NULL;
     }
     offset_sum += 2U * max_layer_size;
@@ -144,7 +144,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_INT_OVERFLOW;
+    if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
     return NULL;
   }
   float *elements = (float *)malloc(offset_sum * sizeof(float));
@@ -152,7 +152,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 
@@ -177,7 +177,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(elements);
     free(layers);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 
@@ -185,7 +185,7 @@ struct mlp_double_layer *mlp_create_double_layer(
   ret->elements_begin = elements;
   ret->elements_end = elements + offset_sum;
   ret->field_offsets = field_offsets_obj;
-  *status = MLP_STATUS_SUCCESS;
+  if (status != NULL) { *status = MLP_STATUS_SUCCESS; }
 
   return ret;
 }
