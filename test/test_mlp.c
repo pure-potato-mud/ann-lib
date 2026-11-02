@@ -887,8 +887,10 @@ void test_mlp_backward_null_activation_funcs(void) {
 }
 
 void test_mlp_update_parameters_sgd(void) {
-  float dump[17U] = {5.0f,  20.0f, 5.0f,  20.0f, 5.0f,  20.0f, 9.0f, 9.0f, 9.0f,
-                     11.0f, 11.0f, 11.0f, 10.0f, 10.0f, 10.0f, 4.5f, 5.5f};
+  float dump[17U] = {
+      0.375f,  -1.5f,       0.3749995f, -1.5000019f, 0.375f,  -1.5f,
+      -0.125f, -0.1250004f, -0.125f,    -0.375f,     -0.375f, -0.3750005f,
+      -1.75f,  -1.75f,      -1.75f,     -1.0625002f, -1.1875f};
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
@@ -910,9 +912,8 @@ void test_mlp_update_parameters_sgd(void) {
       mlp_backward(model, backward_buffer, gradient_buffer, gradients));
   TEST_ASSERT_UNLESS(mlp_update_parameters_sgd(model, gradient_buffer));
 
-  float *begin = gradient_buffer->layer_data.elements_begin,
-        *end = gradient_buffer->layer_data.elements_end;
-  TEST_ASSERT_EQUAL_FLOAT_ARRAY(dump, begin, end - begin);
+  float *begin = model->weight_layers[0], *end = model->layer_data.elements_end;
+  TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-6f, dump, begin, end - begin);
 }
 
 void test_mlp_update_parameters_sgd_different_model_metadata(void) {
