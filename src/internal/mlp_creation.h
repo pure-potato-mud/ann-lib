@@ -6,11 +6,6 @@
 
 #include <ann-lib/mlp.h>
 
-struct mlp_layer_size_data {
-  const size_t *layer_sizes_ref;
-  size_t layer_size_count;
-};
-
 struct mlp_field_offsets {
   size_t *field_offsets; // last element is `max_offset + 1`
   size_t field_offset_count;

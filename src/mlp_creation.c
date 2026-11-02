@@ -1,4 +1,3 @@
-#include "mlp.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -23,13 +22,13 @@ struct mlp_double_layer *mlp_create_double_layer(
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
                                 size_t *) = funcs->get_current_size;
   if (get_field_offsets == NULL || get_current_size == NULL) {
-    *status = MLP_STATUS_INVALID_HARDCODE;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_HARDCODE; }
     return NULL;
   }
   const size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
   const size_t layer_size_count = layer_size->layer_size_count;
   if (layer_sizes_ref == NULL || layer_size_count < 2U) {
-    *status = MLP_STATUS_INVALID_ARGUMENT;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return NULL;
   }
 
@@ -38,39 +37,39 @@ struct mlp_double_layer *mlp_create_double_layer(
   struct mlp_field_offsets *field_offsets_obj =
       get_field_offsets(layer_size_count);
   if (field_offsets_obj == NULL) {
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   const size_t field_offset_count = field_offsets_obj->field_offset_count;
   const size_t *field_offsets = field_offsets_obj->field_offsets;
   if (field_offset_count < 1U) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_INVALID_HARDCODE;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_HARDCODE; }
     return NULL;
   }
   if (field_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   const size_t layer_full_size = field_offsets[field_offset_count - 1U];
   if (SIZE_MAX / sizeof(size_t) < layer_full_size ||
       SIZE_MAX / sizeof(float *) < layer_full_size) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_INT_OVERFLOW;
+    if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
     return NULL;
   }
   size_t *addr_offsets = (size_t *)malloc(layer_full_size * sizeof(size_t));
   if (addr_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   float **layers = (float **)malloc(layer_full_size * sizeof(float *));
   if (layers == NULL) {
     free(addr_offsets);
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 
@@ -84,7 +83,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INVALID_ARGUMENT;
+      if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
       return NULL;
     }
   }
@@ -92,9 +91,9 @@ struct mlp_double_layer *mlp_create_double_layer(
     result = get_current_size(i, layer_sizes_ref, field_offsets, &current_size);
     if (result != 0) {
       if (result == 1) {
-        *status = MLP_STATUS_INT_OVERFLOW;
+        if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       } else {
-        *status = MLP_STATUS_ALLOCATION_FAILED;
+        if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
       }
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
@@ -105,7 +104,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INT_OVERFLOW;
+      if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       return NULL;
     }
     // get address offset
@@ -118,7 +117,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_INVALID_ARGUMENT;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return NULL;
   }
   for (i = 0; i < layer_size_count; ++i) {
@@ -133,7 +132,7 @@ struct mlp_double_layer *mlp_create_double_layer(
       mlp_destory_field_offsets(field_offsets_obj);
       free(addr_offsets);
       free(layers);
-      *status = MLP_STATUS_INT_OVERFLOW;
+      if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
       return NULL;
     }
     offset_sum += 2U * max_layer_size;
@@ -145,7 +144,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_INT_OVERFLOW;
+    if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
     return NULL;
   }
   float *elements = (float *)malloc(offset_sum * sizeof(float));
@@ -153,7 +152,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(addr_offsets);
     free(layers);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 
@@ -178,7 +177,7 @@ struct mlp_double_layer *mlp_create_double_layer(
     mlp_destory_field_offsets(field_offsets_obj);
     free(elements);
     free(layers);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 
@@ -186,7 +185,7 @@ struct mlp_double_layer *mlp_create_double_layer(
   ret->elements_begin = elements;
   ret->elements_end = elements + offset_sum;
   ret->field_offsets = field_offsets_obj;
-  *status = MLP_STATUS_SUCCESS;
+  if (status != NULL) { *status = MLP_STATUS_SUCCESS; }
 
   return ret;
 }
@@ -252,10 +251,10 @@ int mlp_model_get_current_size(size_t i, const size_t *layer_sizes,
 
 struct mlp_field_offsets *
 mlp_backward_buffer_get_field_offsets(size_t layer_size_count) {
-  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
-  const size_t layer_full_size = layer_size_count * 2U - 1U;
+  if ((SIZE_MAX - 1U) / 2U < layer_size_count) { return NULL; }
+  const size_t layer_full_size = layer_size_count * 2U + 1U;
 
-  const size_t data[] = {layer_size_count, layer_full_size};
+  const size_t data[] = {2U, layer_size_count + 2U, layer_full_size};
   const size_t data_size = sizeof(data) / sizeof(size_t);
   size_t *copied_data = (size_t *)malloc(data_size * sizeof(size_t));
   if (copied_data == NULL) { return NULL; }
@@ -280,9 +279,12 @@ mlp_backward_buffer_get_field_offsets(size_t layer_size_count) {
 int mlp_backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                          const size_t *field_offsets,
                                          size_t *current_size) {
-  size_t raw_output_offset = field_offsets[0U];
-  if (i < raw_output_offset) {
-    *current_size = layer_sizes[i];
+  size_t layer_offset = field_offsets[0U],
+         raw_output_offset = field_offsets[1U];
+  if (i < layer_offset) {
+    *current_size = 0;
+  } else if (i < raw_output_offset) {
+    *current_size = layer_sizes[i - layer_offset];
   } else {
     *current_size = layer_sizes[i - raw_output_offset + 1U];
   }
@@ -291,10 +293,10 @@ int mlp_backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
 
 struct mlp_field_offsets *
 mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
-  if (SIZE_MAX / 2U < layer_size_count) { return NULL; }
-  const size_t layer_full_size = layer_size_count - 1U;
+  if (SIZE_MAX / 2U < layer_size_count - 1U) { return NULL; }
+  const size_t layer_full_size = 2U * layer_size_count - 2U;
 
-  const size_t data[] = {layer_full_size};
+  const size_t data[] = {layer_size_count - 1U, layer_full_size};
   const size_t data_size = sizeof(data) / sizeof(size_t);
   size_t *copied_data = (size_t *)malloc(data_size * sizeof(size_t));
   if (copied_data == NULL) { return NULL; }
@@ -319,7 +321,18 @@ mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
 int mlp_gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                          const size_t *field_offsets,
                                          size_t *current_size) {
-  (void)field_offsets;
-  *current_size = layer_sizes[i + 1U];
+  const size_t bias_offset = field_offsets[0U];
+  size_t current_layer_idx, current_neruon_count;
+  if (i < bias_offset) { // offsets for weights
+    current_layer_idx = i + 1U;
+    current_neruon_count = layer_sizes[current_layer_idx];
+    // multification overflow test
+    if (SIZE_MAX / current_neruon_count < layer_sizes[current_layer_idx - 1U]) {
+      return 1;
+    }
+    *current_size = current_neruon_count * layer_sizes[current_layer_idx - 1U];
+  } else { // offsets for bias
+    *current_size = layer_sizes[i - bias_offset + 1U];
+  }
   return 0;
 }
