@@ -22,13 +22,13 @@ struct mlp_double_layer *mlp_create_double_layer(
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
                                 size_t *) = funcs->get_current_size;
   if (get_field_offsets == NULL || get_current_size == NULL) {
-    *status = MLP_STATUS_INVALID_HARDCODE;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_HARDCODE; }
     return NULL;
   }
   const size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
   const size_t layer_size_count = layer_size->layer_size_count;
   if (layer_sizes_ref == NULL || layer_size_count < 2U) {
-    *status = MLP_STATUS_INVALID_ARGUMENT;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return NULL;
   }
 
@@ -37,39 +37,39 @@ struct mlp_double_layer *mlp_create_double_layer(
   struct mlp_field_offsets *field_offsets_obj =
       get_field_offsets(layer_size_count);
   if (field_offsets_obj == NULL) {
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   const size_t field_offset_count = field_offsets_obj->field_offset_count;
   const size_t *field_offsets = field_offsets_obj->field_offsets;
   if (field_offset_count < 1U) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_INVALID_HARDCODE;
+    if (status != NULL) { *status = MLP_STATUS_INVALID_HARDCODE; }
     return NULL;
   }
   if (field_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   const size_t layer_full_size = field_offsets[field_offset_count - 1U];
   if (SIZE_MAX / sizeof(size_t) < layer_full_size ||
       SIZE_MAX / sizeof(float *) < layer_full_size) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_INT_OVERFLOW;
+    if (status != NULL) { *status = MLP_STATUS_INT_OVERFLOW; }
     return NULL;
   }
   size_t *addr_offsets = (size_t *)malloc(layer_full_size * sizeof(size_t));
   if (addr_offsets == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
   float **layers = (float **)malloc(layer_full_size * sizeof(float *));
   if (layers == NULL) {
     free(addr_offsets);
     mlp_destory_field_offsets(field_offsets_obj);
-    *status = MLP_STATUS_ALLOCATION_FAILED;
+    if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return NULL;
   }
 

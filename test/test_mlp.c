@@ -61,6 +61,12 @@ void test_mlp_create_model(void) {
   TEST_ASSERT_UNLESS(status);
 }
 
+void test_mlp_create_model_null_status(void) {
+  model = mlp_create_model(&size_data, NULL);
+
+  TEST_ASSERT_NOT_NULL(model);
+}
+
 void test_mlp_create_model_null(void) {
   struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
   model = mlp_create_model(&test_size_data, &status);
@@ -124,6 +130,12 @@ void test_mlp_create_backward_buffer(void) {
   TEST_ASSERT_UNLESS(status);
 }
 
+void test_mlp_create_backward_buffer_null_status(void) {
+  backward_buffer = mlp_create_backward_buffer(&size_data, NULL);
+
+  TEST_ASSERT_NOT_NULL(backward_buffer);
+}
+
 void test_mlp_create_backward_buffer_null(void) {
   struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
@@ -185,6 +197,12 @@ void test_mlp_create_gradient_buffer(void) {
 
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
+}
+
+void test_mlp_create_gradient_buffer_null_status(void) {
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, NULL);
+
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
 }
 
 void test_mlp_create_gradient_buffer_null(void) {
