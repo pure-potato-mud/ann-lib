@@ -370,7 +370,7 @@ void test_mlp_fill_weights(void) {
   }
 }
 
-void test_mlp_fill_weights_null(void) {
+void test_mlp_fill_weights_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_weights(NULL, 1.0f));
 }
 
@@ -1119,6 +1119,7 @@ int main(void) {
   RUN_TEST(test_mlp_fill_biases_null_element_end);
 
   RUN_TEST(test_mlp_fill_weights);
+  RUN_TEST(test_mlp_fill_weights_null_model);
   RUN_TEST(test_mlp_fill_weights_null_weight_layers);
   RUN_TEST(test_mlp_fill_weights_null_bias_layers);
   RUN_TEST(test_mlp_fill_weights_null_weight_layer);
