@@ -262,9 +262,9 @@ enum mlp_status mlp_scale_gradients(struct mlp_gradient_buffer *buffer,
   return MLP_STATUS_SUCCESS;
 }
 
-enum mlp_status mlp_forward(struct mlp_model *model,
-                            struct mlp_backward_buffer *backward_buffer,
-                            float const *input, float *output) {
+enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
+                            float *output,
+                            struct mlp_backward_buffer *backward_buffer) {
   struct mlp_backward_buffer *local_backward_buffer = backward_buffer;
   if (model == NULL || input == NULL) { return MLP_STATUS_INVALID_ARGUMENT; }
   if (local_backward_buffer != NULL &&
@@ -362,16 +362,16 @@ enum mlp_status mlp_forward(struct mlp_model *model,
 
 enum mlp_status mlp_backward(const struct mlp_model *model,
                              const struct mlp_backward_buffer *backward_buffer,
-                             struct mlp_gradient_buffer *gradient_output_buffer,
-                             const float *const gradients) {
-  if (model == NULL || backward_buffer == NULL ||
-      gradient_output_buffer == NULL || gradients == NULL) {
+                             const float *const gradients,
+                             struct mlp_gradient_buffer *gradient_total) {
+  if (model == NULL || backward_buffer == NULL || gradient_total == NULL ||
+      gradients == NULL) {
     return MLP_STATUS_INVALID_ARGUMENT;
   }
   if (is_metadata_not_same(&model->layer_metadata,
                            &backward_buffer->layer_metadata) ||
       is_metadata_not_same(&model->layer_metadata,
-                           &gradient_output_buffer->layer_metadata)) {
+                           &gradient_total->layer_metadata)) {
     return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
@@ -382,10 +382,8 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
   float **const compute_buffer = backward_buffer->compute;
   float **const layers = backward_buffer->layers;
   float **const raw_output_layers = backward_buffer->raw_output_layers;
-  float **const weight_gradient_layers =
-      gradient_output_buffer->weight_gradient_layers;
-  float **const bias_gradient_layers =
-      gradient_output_buffer->bias_gradient_layers;
+  float **const weight_gradient_layers = gradient_total->weight_gradient_layers;
+  float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || compute_buffer == NULL || layers == NULL ||
@@ -466,12 +464,12 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
 
 enum mlp_status
 mlp_update_parameters_sgd(mlp_model_t *model,
-                          const mlp_gradient_buffer_t *gradient_output) {
-  if (model == NULL || gradient_output == NULL) {
+                          const mlp_gradient_buffer_t *gradient_total) {
+  if (model == NULL || gradient_total == NULL) {
     return MLP_STATUS_INVALID_ARGUMENT;
   }
   if (is_metadata_not_same(&model->layer_metadata,
-                           &gradient_output->layer_metadata)) {
+                           &gradient_total->layer_metadata)) {
     return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
@@ -480,9 +478,8 @@ mlp_update_parameters_sgd(mlp_model_t *model,
   const size_t last_layer_idx = layer_size_count - 1U;
 
   const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
-  float **const weight_gradient_layers =
-      gradient_output->weight_gradient_layers;
-  float **const bias_gradient_layers = gradient_output->bias_gradient_layers;
+  float **const weight_gradient_layers = gradient_total->weight_gradient_layers;
+  float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
   float **const bias_layers = model->bias_layers;
   float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
