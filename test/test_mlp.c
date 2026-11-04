@@ -67,7 +67,7 @@ void test_mlp_create_model_null_status(void) {
   TEST_ASSERT_NOT_NULL(model);
 }
 
-void test_mlp_create_model_null(void) {
+void test_mlp_create_model_null_layer_sizes_ref(void) {
   struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
   model = mlp_create_model(&test_size_data, &status);
 
@@ -136,7 +136,7 @@ void test_mlp_create_backward_buffer_null_status(void) {
   TEST_ASSERT_NOT_NULL(backward_buffer);
 }
 
-void test_mlp_create_backward_buffer_null(void) {
+void test_mlp_create_backward_buffer_null_layer_sizes_ref(void) {
   struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
@@ -205,7 +205,7 @@ void test_mlp_create_gradient_buffer_null_status(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
 }
 
-void test_mlp_create_gradient_buffer_null(void) {
+void test_mlp_create_gradient_buffer_null_layer_sizes_ref(void) {
   struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
@@ -271,7 +271,7 @@ void test_mlp_set_learning_rate(void) {
   TEST_ASSERT_EQUAL_FLOAT(learning_rate, model->learning_rate);
 }
 
-void test_mlp_set_learning_rate_null(void) {
+void test_mlp_set_learning_rate_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT,
                     mlp_set_learning_rate(NULL, learning_rate));
 }
@@ -318,7 +318,7 @@ void test_mlp_fill_biases(void) {
                                 2U);
 }
 
-void test_mlp_fill_biases_null(void) {
+void test_mlp_fill_biases_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_biases(NULL, 1.0f));
 }
 
@@ -424,7 +424,7 @@ void test_mlp_clear_gradient_buffer(void) {
   }
 }
 
-void test_mlp_clear_gradient_buffer_null(void) {
+void test_mlp_clear_gradient_buffer_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT,
                     mlp_clear_gradient_buffer(NULL));
 }
@@ -479,7 +479,7 @@ void test_mlp_scale_gradients(void) {
   }
 }
 
-void test_mlp_scale_gradients_null(void) {
+void test_mlp_scale_gradients_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT,
                     mlp_scale_gradients(NULL, 0.5f));
 }
@@ -1076,7 +1076,7 @@ int main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(test_mlp_create_model);
-  RUN_TEST(test_mlp_create_model_null);
+  RUN_TEST(test_mlp_create_model_null_layer_sizes_ref);
   RUN_TEST(test_mlp_create_model_one_layer);
   RUN_TEST(test_mlp_create_model_zero_neuron);
   RUN_TEST(test_mlp_create_model_large_layer_full_size);
@@ -1084,7 +1084,7 @@ int main(void) {
   RUN_TEST(test_mlp_create_model_large_offset_sum);
 
   RUN_TEST(test_mlp_create_backward_buffer);
-  RUN_TEST(test_mlp_create_backward_buffer_null);
+  RUN_TEST(test_mlp_create_backward_buffer_null_layer_sizes_ref);
   RUN_TEST(test_mlp_create_backward_buffer_one_layer);
   RUN_TEST(test_mlp_create_backward_buffer_zero_neuron);
   RUN_TEST(test_mlp_create_backward_buffer_large_layer_full_size);
@@ -1092,7 +1092,7 @@ int main(void) {
   RUN_TEST(test_mlp_create_backward_buffer_large_offset_sum);
 
   RUN_TEST(test_mlp_create_gradient_buffer);
-  RUN_TEST(test_mlp_create_gradient_buffer_null);
+  RUN_TEST(test_mlp_create_gradient_buffer_null_layer_sizes_ref);
   RUN_TEST(test_mlp_create_gradient_buffer_one_layer);
   RUN_TEST(test_mlp_create_gradient_buffer_zero_neuron);
   RUN_TEST(test_mlp_create_gradient_buffer_large_layer_full_size);
@@ -1100,14 +1100,14 @@ int main(void) {
   RUN_TEST(test_mlp_create_gradient_buffer_large_offset_sum);
 
   RUN_TEST(test_mlp_set_learning_rate);
-  RUN_TEST(test_mlp_set_learning_rate_null);
+  RUN_TEST(test_mlp_set_learning_rate_null_model);
 
   RUN_TEST(test_mlp_set_activation_fns_ref);
   RUN_TEST(test_mlp_set_activation_fns_ref_null_model);
   RUN_TEST(test_mlp_set_activation_fns_ref_null_fns_ref);
 
   RUN_TEST(test_mlp_fill_biases);
-  RUN_TEST(test_mlp_fill_biases_null);
+  RUN_TEST(test_mlp_fill_biases_null_model);
   RUN_TEST(test_mlp_fill_biases_null_bias_layers);
   RUN_TEST(test_mlp_fill_biases_null_bias_layer);
   RUN_TEST(test_mlp_fill_biases_null_element_end);
@@ -1119,13 +1119,13 @@ int main(void) {
   RUN_TEST(test_mlp_fill_weights_null_bias_layer);
 
   RUN_TEST(test_mlp_clear_gradient_buffer);
-  RUN_TEST(test_mlp_clear_gradient_buffer_null);
+  RUN_TEST(test_mlp_clear_gradient_buffer_null_model);
   RUN_TEST(test_mlp_clear_gradient_buffer_null_bias_layers);
   RUN_TEST(test_mlp_clear_gradient_buffer_null_bias_layer);
   RUN_TEST(test_mlp_clear_gradient_buffer_null_element_end);
 
   RUN_TEST(test_mlp_scale_gradients);
-  RUN_TEST(test_mlp_scale_gradients_null);
+  RUN_TEST(test_mlp_scale_gradients_null_model);
   RUN_TEST(test_mlp_scale_gradients_null_bias_layers);
   RUN_TEST(test_mlp_scale_gradients_null_bias_layer);
   RUN_TEST(test_mlp_scale_gradients_null_element_end);
