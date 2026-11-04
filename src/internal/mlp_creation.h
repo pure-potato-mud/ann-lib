@@ -7,15 +7,15 @@
 #include <ann-lib/mlp.h>
 
 struct mlp_field_offsets {
-  size_t *field_offsets; // last element is `max_offset + 1`
   size_t field_offset_count;
+  size_t *field_offsets; // last element is `max_offset + 1`
 };
 
 struct mlp_double_layers {
+  struct mlp_field_offsets *field_offsets;
   float **layers;
   float *elements_begin;
   float *elements_end;
-  struct mlp_field_offsets *field_offsets;
 };
 
 struct mlp_creation_functions {

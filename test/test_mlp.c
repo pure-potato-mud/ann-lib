@@ -22,9 +22,9 @@ static float (*activation_funcs[3U])(float) = {leaky_relu, leaky_relu,
                                                leaky_relu};
 static size_t layer_sizes_another[4] = {3U, 4U, 1U, 3U};
 static const size_t layer_size_count_another = 4U;
-static struct mlp_layer_size_data size_data = {layer_sizes, layer_size_count};
-static struct mlp_layer_size_data size_data_another = {
-    layer_sizes_another, layer_size_count_another};
+static struct mlp_layer_size_data size_data = {layer_size_count, layer_sizes};
+static struct mlp_layer_size_data size_data_another = {layer_size_count_another,
+                                                       layer_sizes_another};
 
 static int get_gradients(size_t size, const float *expect, const float *actual,
                          float *gradients_output) {
@@ -68,7 +68,7 @@ void test_mlp_create_model_null_status(void) {
 }
 
 void test_mlp_create_model_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -77,7 +77,7 @@ void test_mlp_create_model_null_layer_sizes_ref(void) {
 
 void test_mlp_create_model_one_layer(void) {
   size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
+  struct mlp_layer_size_data test_size_data = {1U, tiny_layer_sizes};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -86,7 +86,7 @@ void test_mlp_create_model_one_layer(void) {
 
 void test_mlp_create_model_zero_neuron(void) {
   size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -95,8 +95,8 @@ void test_mlp_create_model_zero_neuron(void) {
 
 void test_mlp_create_model_large_layer_full_size(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
+  struct mlp_layer_size_data test_size_data = {(SIZE_MAX - 1U) / 5U + 1U,
+                                               large};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -105,8 +105,8 @@ void test_mlp_create_model_large_layer_full_size(void) {
 
 void test_mlp_create_model_large_layer_offsets(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
+  struct mlp_layer_size_data test_size_data = {((SIZE_MAX - 1U) / 5U + 1U) >> 3,
+                                               large};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -116,7 +116,7 @@ void test_mlp_create_model_large_layer_offsets(void) {
 void test_mlp_create_model_large_offset_sum(void) {
   size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
                                  (SIZE_MAX >> 2) / 3};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
@@ -137,7 +137,7 @@ void test_mlp_create_backward_buffer_null_status(void) {
 }
 
 void test_mlp_create_backward_buffer_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -146,7 +146,7 @@ void test_mlp_create_backward_buffer_null_layer_sizes_ref(void) {
 
 void test_mlp_create_backward_buffer_one_layer(void) {
   size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
+  struct mlp_layer_size_data test_size_data = {1U, tiny_layer_sizes};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -155,7 +155,7 @@ void test_mlp_create_backward_buffer_one_layer(void) {
 
 void test_mlp_create_backward_buffer_zero_neuron(void) {
   size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -164,8 +164,8 @@ void test_mlp_create_backward_buffer_zero_neuron(void) {
 
 void test_mlp_create_backward_buffer_large_layer_full_size(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
+  struct mlp_layer_size_data test_size_data = {(SIZE_MAX - 1U) / 5U + 1U,
+                                               large};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -174,8 +174,8 @@ void test_mlp_create_backward_buffer_large_layer_full_size(void) {
 
 void test_mlp_create_backward_buffer_large_layer_offsets(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
+  struct mlp_layer_size_data test_size_data = {((SIZE_MAX - 1U) / 5U + 1U) >> 3,
+                                               large};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -185,7 +185,7 @@ void test_mlp_create_backward_buffer_large_layer_offsets(void) {
 void test_mlp_create_backward_buffer_large_offset_sum(void) {
   size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
                                  (SIZE_MAX >> 2) / 3};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
@@ -206,7 +206,7 @@ void test_mlp_create_gradient_buffer_null_status(void) {
 }
 
 void test_mlp_create_gradient_buffer_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
@@ -215,7 +215,7 @@ void test_mlp_create_gradient_buffer_null_layer_sizes_ref(void) {
 
 void test_mlp_create_gradient_buffer_one_layer(void) {
   size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
+  struct mlp_layer_size_data test_size_data = {1U, tiny_layer_sizes};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
@@ -224,7 +224,7 @@ void test_mlp_create_gradient_buffer_one_layer(void) {
 
 void test_mlp_create_gradient_buffer_zero_neuron(void) {
   size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
@@ -233,8 +233,8 @@ void test_mlp_create_gradient_buffer_zero_neuron(void) {
 
 void test_mlp_create_gradient_buffer_large_layer_full_size(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
+  struct mlp_layer_size_data test_size_data = {(SIZE_MAX - 1U) / 5U + 1U,
+                                               large};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
@@ -243,8 +243,8 @@ void test_mlp_create_gradient_buffer_large_layer_full_size(void) {
 
 void test_mlp_create_gradient_buffer_large_layer_offsets(void) {
   size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
+  struct mlp_layer_size_data test_size_data = {((SIZE_MAX - 1U) / 5U + 1U) >> 3,
+                                               large};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
@@ -254,7 +254,7 @@ void test_mlp_create_gradient_buffer_large_layer_offsets(void) {
 void test_mlp_create_gradient_buffer_large_offset_sum(void) {
   size_t large_layer_sizes[3] = {SIZE_MAX >> 1, SIZE_MAX >> 2,
                                  (SIZE_MAX >> 2) + 1};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
+  struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
