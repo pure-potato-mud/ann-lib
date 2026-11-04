@@ -16,7 +16,10 @@ void mlp_destory_field_offsets(struct mlp_field_offsets *offsets) {
 struct mlp_double_layers *mlp_create_double_layers(
     bool has_extra_double_buffers, const struct mlp_creation_functions *funcs,
     const struct mlp_layer_size_data *layer_size, enum mlp_status *status) {
-  if (funcs == NULL || layer_size == NULL) { return NULL; }
+  if (funcs == NULL || layer_size == NULL) {
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
+    return NULL;
+  }
   struct mlp_field_offsets *(*const get_field_offsets)(size_t) =
       funcs->get_field_offsets;
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
