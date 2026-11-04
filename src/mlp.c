@@ -38,12 +38,12 @@ struct mlp_model *mlp_create_model(const struct mlp_layer_size_data *size_data,
   }
   const struct mlp_creation_functions funcs = {mlp_model_get_field_offsets,
                                                mlp_model_get_current_size};
-  struct mlp_double_layer *dl =
-      mlp_create_double_layer(true, &funcs, size_data, status);
-  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
+  struct mlp_double_layers *dl =
+      mlp_create_double_layers(true, &funcs, size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layers
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
   float **layers = dl->layers;
@@ -51,7 +51,7 @@ struct mlp_model *mlp_create_model(const struct mlp_layer_size_data *size_data,
   struct mlp_model *mlp = (struct mlp_model *)malloc(sizeof(struct mlp_model));
   if (mlp == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
 
@@ -72,7 +72,7 @@ struct mlp_model *mlp_create_model(const struct mlp_layer_size_data *size_data,
 
   dl->layers = NULL;
   dl->elements_begin = NULL;
-  mlp_destory_double_layer(dl);
+  mlp_destory_double_layers(dl);
   if (status != NULL) { *status = MLP_STATUS_SUCCESS; }
   return mlp;
 }
@@ -94,12 +94,12 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
   const struct mlp_creation_functions funcs = {
       mlp_backward_buffer_get_field_offsets,
       mlp_backward_buffer_get_current_size};
-  struct mlp_double_layer *dl =
-      mlp_create_double_layer(true, &funcs, size_data, status);
-  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
+  struct mlp_double_layers *dl =
+      mlp_create_double_layers(true, &funcs, size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layers
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
   float **layers = dl->layers;
@@ -108,7 +108,7 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
       (struct mlp_backward_buffer *)malloc(sizeof(struct mlp_backward_buffer));
   if (buffer == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
 
@@ -123,7 +123,7 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
 
   dl->layers = NULL;
   dl->elements_begin = NULL;
-  mlp_destory_double_layer(dl);
+  mlp_destory_double_layers(dl);
   if (status != NULL) { *status = MLP_STATUS_SUCCESS; }
   return buffer;
 }
@@ -145,12 +145,12 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
   const struct mlp_creation_functions funcs = {
       mlp_gradient_buffer_get_field_offsets,
       mlp_gradient_buffer_get_current_size};
-  struct mlp_double_layer *dl =
-      mlp_create_double_layer(false, &funcs, size_data, status);
-  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layer
+  struct mlp_double_layers *dl =
+      mlp_create_double_layers(false, &funcs, size_data, status);
+  if (dl == NULL) { return NULL; } // pass status of mlp_create_double_layers
   if (dl->layers == NULL || dl->elements_begin == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
   float **layers = dl->layers;
@@ -159,7 +159,7 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
       (struct mlp_gradient_buffer *)malloc(sizeof(struct mlp_gradient_buffer));
   if (buffer == NULL) {
     if (status != NULL) { *status = MLP_STATUS_ALLOCATION_FAILED; }
-    mlp_destory_double_layer(dl);
+    mlp_destory_double_layers(dl);
     return NULL;
   }
 
@@ -173,7 +173,7 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
 
   dl->layers = NULL;
   dl->elements_begin = NULL;
-  mlp_destory_double_layer(dl);
+  mlp_destory_double_layers(dl);
   if (status != NULL) { *status = MLP_STATUS_SUCCESS; }
   return buffer;
 }

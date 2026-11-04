@@ -10,8 +10,8 @@ typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
 typedef enum mlp_status mlp_status_t;
 
 struct mlp_layer_size_data {
-  size_t *layer_sizes_ref;
   size_t layer_size_count;
+  size_t *layer_sizes_ref;
 };
 
 enum mlp_status {

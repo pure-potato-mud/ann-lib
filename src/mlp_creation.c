@@ -13,10 +13,13 @@ void mlp_destory_field_offsets(struct mlp_field_offsets *offsets) {
   free(data);
 }
 
-struct mlp_double_layer *mlp_create_double_layer(
+struct mlp_double_layers *mlp_create_double_layers(
     bool has_extra_double_buffers, const struct mlp_creation_functions *funcs,
     const struct mlp_layer_size_data *layer_size, enum mlp_status *status) {
-  if (funcs == NULL || layer_size == NULL) { return NULL; }
+  if (funcs == NULL || layer_size == NULL) {
+    if (status != NULL) { *status = MLP_STATUS_INVALID_ARGUMENT; }
+    return NULL;
+  }
   struct mlp_field_offsets *(*const get_field_offsets)(size_t) =
       funcs->get_field_offsets;
   int (*const get_current_size)(size_t, const size_t *, const size_t *,
@@ -171,8 +174,8 @@ struct mlp_double_layer *mlp_create_double_layer(
   free(addr_offsets);
 
   // return field_offsets
-  struct mlp_double_layer *ret =
-      (struct mlp_double_layer *)malloc(sizeof(struct mlp_double_layer));
+  struct mlp_double_layers *ret =
+      (struct mlp_double_layers *)malloc(sizeof(struct mlp_double_layers));
   if (ret == NULL) {
     mlp_destory_field_offsets(field_offsets_obj);
     free(elements);
@@ -190,7 +193,7 @@ struct mlp_double_layer *mlp_create_double_layer(
   return ret;
 }
 
-void mlp_destory_double_layer(struct mlp_double_layer *obj) {
+void mlp_destory_double_layers(struct mlp_double_layers *obj) {
   if (obj == NULL) { return; }
 
   if (obj->layers != NULL) { free(obj->layers); }

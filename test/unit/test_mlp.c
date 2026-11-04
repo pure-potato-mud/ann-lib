@@ -1,57 +1,206 @@
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include <unity.h>
 
 #include <internal/mlp.h>
+#include <internal/mlp_creation.h>
 
-static float leaky_relu(float value) {
-  return (value > 0) ? value : value * 0.03125f;
-}
+extern float input[2], answer[2];
+extern size_t layer_sizes[3];
+extern const size_t layer_size_count;
+extern struct mlp_layer_size_data size_data;
+extern float learning_rate;
+extern float leaky_relu(float value);
+extern float (*activation_funcs[3U])(float);
+extern int test_mlp_get_gradients(size_t size, const float *expect,
+                                  const float *actual, float *gradients_output);
 
+static struct mlp_double_layers *double_layers;
 static struct mlp_model *model;
 static struct mlp_backward_buffer *backward_buffer;
 static struct mlp_gradient_buffer *gradient_buffer;
 static enum mlp_status status;
 
 static float output[2], gradients[2];
-static float input[2] = {0.5f, 2.0f}, answer[2] = {1.0f, 0.0f};
-static size_t layer_sizes[3] = {2U, 3U, 2U};
-static const size_t layer_size_count = 3U;
-static float learning_rate = 0.125f;
-static float (*activation_funcs[3U])(float) = {leaky_relu, leaky_relu,
-                                               leaky_relu};
 static size_t layer_sizes_another[4] = {3U, 4U, 1U, 3U};
 static const size_t layer_size_count_another = 4U;
-static struct mlp_layer_size_data size_data = {layer_sizes, layer_size_count};
-static struct mlp_layer_size_data size_data_another = {
-    layer_sizes_another, layer_size_count_another};
+static struct mlp_layer_size_data size_data_another = {layer_size_count_another,
+                                                       layer_sizes_another};
+static struct mlp_creation_functions creation_functions = {
+    mlp_model_get_field_offsets, mlp_model_get_current_size};
 
-static int get_gradients(size_t size, const float *expect, const float *actual,
-                         float *gradients_output) {
-  if (expect == NULL || actual == NULL || gradients_output == NULL) {
-    return 1;
-  }
-  size_t i;
-  for (i = 0; i < size; ++i) {
-    // L(a) = 0.5 * (a - y)^2
-    // L'(a) = a - y
-    // y is for expect output
-    gradients_output[i] = actual[i] - expect[i];
-  }
-  return 0;
+static struct mlp_field_offsets *
+test_mlp_get_null_obj(size_t layer_size_count) {
+  (void)layer_size_count;
+  return NULL;
+}
+static struct mlp_field_offsets *
+test_mlp_get_zero_field(size_t layer_size_count) {
+  (void)layer_size_count;
+
+  struct mlp_field_offsets *ret =
+      (struct mlp_field_offsets *)malloc(sizeof(struct mlp_field_offsets));
+  if (ret == NULL) { return NULL; }
+
+  ret->field_offsets = NULL;
+  ret->field_offset_count = 0U;
+
+  return ret;
 }
 
-void setUp() {
+static struct mlp_field_offsets *
+test_mlp_get_null_offsets(size_t layer_size_count) {
+  (void)layer_size_count;
+
+  struct mlp_field_offsets *ret =
+      (struct mlp_field_offsets *)malloc(sizeof(struct mlp_field_offsets));
+  if (ret == NULL) { return NULL; }
+
+  ret->field_offsets = NULL;
+  ret->field_offset_count = 1U;
+
+  return ret;
+}
+
+void setUp(void) {
+  double_layers = NULL;
   model = NULL;
   backward_buffer = NULL;
   gradient_buffer = NULL;
   status = -1;
 }
 
-void tearDown() {
+void tearDown(void) {
+  mlp_destory_double_layers(double_layers);
   mlp_destroy_model(model);
   mlp_destroy_backward_buffer(backward_buffer);
   mlp_destroy_gradient_buffer(gradient_buffer);
+}
+
+void test_mlp_create_double_layers_with_buffers(void) {
+  double_layers =
+      mlp_create_double_layers(true, &creation_functions, &size_data, &status);
+
+  TEST_ASSERT_NOT_NULL(double_layers);
+  TEST_ASSERT_UNLESS(status);
+}
+
+void test_mlp_create_double_layers_without_buffers(void) {
+  struct mlp_creation_functions gradient_creation_functions = {
+      mlp_gradient_buffer_get_field_offsets,
+      mlp_gradient_buffer_get_current_size};
+  double_layers = mlp_create_double_layers(false, &gradient_creation_functions,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NOT_NULL(double_layers);
+  TEST_ASSERT_UNLESS(status);
+}
+
+void test_mlp_create_double_layers_null_funcs(void) {
+  double_layers = mlp_create_double_layers(true, NULL, &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_double_layers_null_layer_size(void) {
+  double_layers =
+      mlp_create_double_layers(true, &creation_functions, NULL, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_double_layers_null_get_field_offset(void) {
+  struct mlp_creation_functions funcs_without_get_offset = {
+      NULL, mlp_model_get_current_size};
+  double_layers = mlp_create_double_layers(false, &funcs_without_get_offset,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
+}
+
+void test_mlp_create_double_layers_null_get_current_size(void) {
+  struct mlp_creation_functions funcs_without_get_size = {
+      mlp_model_get_field_offsets, NULL};
+  double_layers = mlp_create_double_layers(false, &funcs_without_get_size,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
+}
+
+void test_mlp_create_double_layers_null_layer_sizes(void) {
+  struct mlp_layer_size_data layer_data_without_sizes = {layer_size_count,
+                                                         NULL};
+  double_layers = mlp_create_double_layers(true, &creation_functions,
+                                           &layer_data_without_sizes, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_double_layers_one_layer(void) {
+  size_t one_layer[1] = {2U};
+  struct mlp_layer_size_data two_layer_data = {1U, one_layer};
+  double_layers = mlp_create_double_layers(true, &creation_functions,
+                                           &two_layer_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_double_layers_get_null_offsets_obj(void) {
+  struct mlp_creation_functions funcs_with_get_null_obj = {
+      test_mlp_get_null_obj, mlp_model_get_current_size};
+  double_layers = mlp_create_double_layers(false, &funcs_with_get_null_obj,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
+}
+
+void test_mlp_create_double_layers_get_zero_field(void) {
+  struct mlp_creation_functions funcs_with_get_zero_field = {
+      test_mlp_get_zero_field, mlp_model_get_current_size};
+  double_layers = mlp_create_double_layers(false, &funcs_with_get_zero_field,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
+}
+
+void test_mlp_create_double_layers_get_null_field_offsets(void) {
+  struct mlp_creation_functions funcs_with_get_null_offset = {
+      test_mlp_get_null_offsets, mlp_model_get_current_size};
+  double_layers = mlp_create_double_layers(false, &funcs_with_get_null_offset,
+                                           &size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
+}
+
+void test_mlp_create_double_layers_zero_neuron(void) {
+  size_t small_layer_sizes[3] = {1U, 0U, 1U};
+  struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
+  double_layers = mlp_create_double_layers(true, &creation_functions,
+                                           &test_size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_double_layers_large_offset_sum(void) {
+  size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
+                                 (SIZE_MAX >> 2) / 3};
+  struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
+  double_layers = mlp_create_double_layers(true, &creation_functions,
+                                           &test_size_data, &status);
+
+  TEST_ASSERT_NULL(double_layers);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
 void test_mlp_create_model(void) {
@@ -68,59 +217,11 @@ void test_mlp_create_model_null_status(void) {
 }
 
 void test_mlp_create_model_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   model = mlp_create_model(&test_size_data, &status);
 
   TEST_ASSERT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_model_one_layer(void) {
-  size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
-  model = mlp_create_model(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(model);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_model_zero_neuron(void) {
-  size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
-  model = mlp_create_model(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(model);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_model_large_layer_full_size(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
-  model = mlp_create_model(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(model);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
-}
-
-void test_mlp_create_model_large_layer_offsets(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
-  model = mlp_create_model(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(model);
-  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
-}
-
-void test_mlp_create_model_large_offset_sum(void) {
-  size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
-                                 (SIZE_MAX >> 2) / 3};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
-  model = mlp_create_model(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(model);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
 void test_mlp_create_backward_buffer(void) {
@@ -137,59 +238,11 @@ void test_mlp_create_backward_buffer_null_status(void) {
 }
 
 void test_mlp_create_backward_buffer_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(backward_buffer);
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_backward_buffer_one_layer(void) {
-  size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
-  backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(backward_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_backward_buffer_zero_neuron(void) {
-  size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
-  backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(backward_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_backward_buffer_large_layer_full_size(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
-  backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(backward_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
-}
-
-void test_mlp_create_backward_buffer_large_layer_offsets(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
-  backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(backward_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
-}
-
-void test_mlp_create_backward_buffer_large_offset_sum(void) {
-  size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
-                                 (SIZE_MAX >> 2) / 3};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
-  backward_buffer = mlp_create_backward_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(backward_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
 void test_mlp_create_gradient_buffer(void) {
@@ -206,59 +259,11 @@ void test_mlp_create_gradient_buffer_null_status(void) {
 }
 
 void test_mlp_create_gradient_buffer_null_layer_sizes_ref(void) {
-  struct mlp_layer_size_data test_size_data = {NULL, layer_size_count};
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_gradient_buffer_one_layer(void) {
-  size_t tiny_layer_sizes[1] = {2U};
-  struct mlp_layer_size_data test_size_data = {tiny_layer_sizes, 1U};
-  gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(gradient_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_gradient_buffer_zero_neuron(void) {
-  size_t small_layer_sizes[3] = {1U, 0U, 1U};
-  struct mlp_layer_size_data test_size_data = {small_layer_sizes, 3U};
-  gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(gradient_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
-}
-
-void test_mlp_create_gradient_buffer_large_layer_full_size(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {large,
-                                               (SIZE_MAX - 1U) / 5U + 1U};
-  gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(gradient_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
-}
-
-void test_mlp_create_gradient_buffer_large_layer_offsets(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {
-      large, ((SIZE_MAX - 1U) / 5U + 1U) >> 3};
-  gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(gradient_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
-}
-
-void test_mlp_create_gradient_buffer_large_offset_sum(void) {
-  size_t large_layer_sizes[3] = {SIZE_MAX >> 1, SIZE_MAX >> 2,
-                                 (SIZE_MAX >> 2) + 1};
-  struct mlp_layer_size_data test_size_data = {large_layer_sizes, 3U};
-  gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
-
-  TEST_ASSERT_NULL(gradient_buffer);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
 void test_mlp_set_learning_rate(void) {
@@ -365,7 +370,7 @@ void test_mlp_fill_weights(void) {
   }
 }
 
-void test_mlp_fill_weights_null(void) {
+void test_mlp_fill_weights_null_model(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_weights(NULL, 1.0f));
 }
 
@@ -521,7 +526,7 @@ void test_mlp_forward(void) {
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
 
@@ -661,11 +666,11 @@ void test_mlp_backward(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
   TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_UNLESS(
@@ -687,7 +692,7 @@ void test_mlp_backward_different_model_metadata(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   int result = mlp_backward(model, backward_buffer, gradients, gradient_buffer);
 
@@ -705,7 +710,7 @@ void test_mlp_backward_different_backward_buffer_metadata(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   int result = mlp_backward(model, backward_buffer, gradients, gradient_buffer);
 
@@ -723,7 +728,7 @@ void test_mlp_backward_different_gradient_buffer_metadata(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   int result = mlp_backward(model, backward_buffer, gradients, gradient_buffer);
 
@@ -741,7 +746,7 @@ void test_mlp_backward_null_layer_sizes(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   model->layer_metadata.layer_sizes_ref = NULL;
   backward_buffer->layer_metadata.layer_sizes_ref = NULL;
@@ -762,7 +767,7 @@ void test_mlp_backward_null_layers(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   float **layers_temp = backward_buffer->layers;
   backward_buffer->layers = NULL;
@@ -783,7 +788,7 @@ void test_mlp_backward_null_layer(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   float *layer_temp = backward_buffer->layers[0];
   backward_buffer->layers[0] = NULL;
@@ -804,7 +809,7 @@ void test_mlp_backward_null_output_layers(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   backward_buffer->raw_output_layers = NULL;
   TEST_ASSERT_EQUAL_INT(
@@ -823,7 +828,7 @@ void test_mlp_backward_null_output_layer(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   backward_buffer->raw_output_layers[0] = NULL;
   TEST_ASSERT_EQUAL_INT(
@@ -842,7 +847,7 @@ void test_mlp_backward_null_weights(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   model->weight_layers = NULL;
   TEST_ASSERT_EQUAL_INT(
@@ -861,7 +866,7 @@ void test_mlp_backward_null_single_layer_weights(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   model->weight_layers[0] = NULL;
   TEST_ASSERT_EQUAL_INT(
@@ -879,7 +884,7 @@ void test_mlp_backward_null_activation_funcs(void) {
   gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   TEST_ASSERT_EQUAL_INT(
       MLP_STATUS_INVALID_FIELD,
@@ -887,10 +892,9 @@ void test_mlp_backward_null_activation_funcs(void) {
 }
 
 void test_mlp_update_parameters_sgd(void) {
-  float dump[17U] = {
-      0.375f,  -1.5f,       0.3749995f, -1.5000019f, 0.375f,  -1.5f,
-      -0.125f, -0.1250004f, -0.125f,    -0.375f,     -0.375f, -0.3750005f,
-      -1.75f,  -1.75f,      -1.75f,     -1.0625002f, -1.1875f};
+  float dump[17U] = {0.375f,  -1.5f,   0.375f,  -1.5f,    0.375f,  -1.5f,
+                     -0.125f, -0.125f, -0.125f, -0.375f,  -0.375f, -0.375f,
+                     -1.75f,  -1.75f,  -1.75f,  -1.0625f, -1.1875f};
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
@@ -901,11 +905,11 @@ void test_mlp_update_parameters_sgd(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
   TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_UNLESS(
@@ -924,7 +928,7 @@ void test_mlp_update_parameters_sgd_different_model_metadata(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
 
   int result = mlp_update_parameters_sgd(model, gradient_buffer);
 
@@ -1075,29 +1079,31 @@ void test_mlp_update_parameters_sgd_null_bias_gradient_layer(void) {
 int main(void) {
   UNITY_BEGIN();
 
+  RUN_TEST(test_mlp_create_double_layers_with_buffers);
+  RUN_TEST(test_mlp_create_double_layers_without_buffers);
+  RUN_TEST(test_mlp_create_double_layers_null_funcs);
+  RUN_TEST(test_mlp_create_double_layers_null_layer_size);
+  RUN_TEST(test_mlp_create_double_layers_null_get_field_offset);
+  RUN_TEST(test_mlp_create_double_layers_null_get_current_size);
+  RUN_TEST(test_mlp_create_double_layers_null_layer_sizes);
+  RUN_TEST(test_mlp_create_double_layers_one_layer);
+  RUN_TEST(test_mlp_create_double_layers_get_null_offsets_obj);
+  RUN_TEST(test_mlp_create_double_layers_get_zero_field);
+  RUN_TEST(test_mlp_create_double_layers_get_null_field_offsets);
+  RUN_TEST(test_mlp_create_double_layers_zero_neuron);
+  RUN_TEST(test_mlp_create_double_layers_large_offset_sum);
+
   RUN_TEST(test_mlp_create_model);
+  RUN_TEST(test_mlp_create_model_null_status);
   RUN_TEST(test_mlp_create_model_null_layer_sizes_ref);
-  RUN_TEST(test_mlp_create_model_one_layer);
-  RUN_TEST(test_mlp_create_model_zero_neuron);
-  RUN_TEST(test_mlp_create_model_large_layer_full_size);
-  RUN_TEST(test_mlp_create_model_large_layer_offsets);
-  RUN_TEST(test_mlp_create_model_large_offset_sum);
 
   RUN_TEST(test_mlp_create_backward_buffer);
+  RUN_TEST(test_mlp_create_backward_buffer_null_status);
   RUN_TEST(test_mlp_create_backward_buffer_null_layer_sizes_ref);
-  RUN_TEST(test_mlp_create_backward_buffer_one_layer);
-  RUN_TEST(test_mlp_create_backward_buffer_zero_neuron);
-  RUN_TEST(test_mlp_create_backward_buffer_large_layer_full_size);
-  RUN_TEST(test_mlp_create_backward_buffer_large_layer_offsets);
-  RUN_TEST(test_mlp_create_backward_buffer_large_offset_sum);
 
   RUN_TEST(test_mlp_create_gradient_buffer);
+  RUN_TEST(test_mlp_create_gradient_buffer_null_status);
   RUN_TEST(test_mlp_create_gradient_buffer_null_layer_sizes_ref);
-  RUN_TEST(test_mlp_create_gradient_buffer_one_layer);
-  RUN_TEST(test_mlp_create_gradient_buffer_zero_neuron);
-  RUN_TEST(test_mlp_create_gradient_buffer_large_layer_full_size);
-  RUN_TEST(test_mlp_create_gradient_buffer_large_layer_offsets);
-  RUN_TEST(test_mlp_create_gradient_buffer_large_offset_sum);
 
   RUN_TEST(test_mlp_set_learning_rate);
   RUN_TEST(test_mlp_set_learning_rate_null_model);
@@ -1113,6 +1119,7 @@ int main(void) {
   RUN_TEST(test_mlp_fill_biases_null_element_end);
 
   RUN_TEST(test_mlp_fill_weights);
+  RUN_TEST(test_mlp_fill_weights_null_model);
   RUN_TEST(test_mlp_fill_weights_null_weight_layers);
   RUN_TEST(test_mlp_fill_weights_null_bias_layers);
   RUN_TEST(test_mlp_fill_weights_null_weight_layer);
