@@ -89,20 +89,19 @@ mlp_status_t mlp_scale_gradients(mlp_gradient_buffer_t *buffer, float scalar);
 // the MLP(and it's members) and the input cannot be NULL, but the output can.
 // the output will be fill in values if it is not NULL.
 // function stores data for learning if backward_buffer is not NULL.
-mlp_status_t mlp_forward(mlp_model_t *model,
-                         mlp_backward_buffer_t *backward_buffer,
-                         float const *input, float *output);
+mlp_status_t mlp_forward(mlp_model_t *model, const float *input, float *output,
+                         mlp_backward_buffer_t *backward_buffer);
 
 // do backpropagation.
 // the MLP(and it's members), backward_buffer and gradient_output cannot be
 // NULL.
 mlp_status_t mlp_backward(const mlp_model_t *model,
                           const mlp_backward_buffer_t *backward_buffer,
-                          mlp_gradient_buffer_t *gradient_output,
-                          float const *gradients);
+                          const float *gradients,
+                          mlp_gradient_buffer_t *gradient_total);
 
 mlp_status_t
 mlp_update_parameters_sgd(mlp_model_t *model,
-                          const mlp_gradient_buffer_t *gradient_output);
+                          const mlp_gradient_buffer_t *gradient_total);
 
 #endif /* ann_lib_mlp_h_ */
