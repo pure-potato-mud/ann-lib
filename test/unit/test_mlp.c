@@ -78,7 +78,7 @@ void tearDown(void) {
   mlp_destroy_gradient_buffer(gradient_buffer);
 }
 
-void test_mlp_create_double_layer_with_buffers(void) {
+void test_mlp_create_double_layers_with_buffers(void) {
   double_layers =
       mlp_create_double_layers(true, &creation_functions, &size_data, &status);
 
@@ -86,7 +86,7 @@ void test_mlp_create_double_layer_with_buffers(void) {
   TEST_ASSERT_UNLESS(status);
 }
 
-void test_mlp_create_double_layer_without_buffers(void) {
+void test_mlp_create_double_layers_without_buffers(void) {
   struct mlp_creation_functions gradient_creation_functions = {
       mlp_gradient_buffer_get_field_offsets,
       mlp_gradient_buffer_get_current_size};
@@ -97,14 +97,14 @@ void test_mlp_create_double_layer_without_buffers(void) {
   TEST_ASSERT_UNLESS(status);
 }
 
-void test_mlp_create_double_layer_null_funcs(void) {
+void test_mlp_create_double_layers_null_funcs(void) {
   double_layers = mlp_create_double_layers(true, NULL, &size_data, &status);
 
   TEST_ASSERT_NULL(double_layers);
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
-void test_mlp_create_double_layer_null_layer_size(void) {
+void test_mlp_create_double_layers_null_layer_size(void) {
   double_layers =
       mlp_create_double_layers(true, &creation_functions, NULL, &status);
 
@@ -112,7 +112,7 @@ void test_mlp_create_double_layer_null_layer_size(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
-void test_mlp_create_double_layer_null_get_field_offset(void) {
+void test_mlp_create_double_layers_null_get_field_offset(void) {
   struct mlp_creation_functions funcs_without_get_offset = {
       NULL, mlp_model_get_current_size};
   double_layers = mlp_create_double_layers(false, &funcs_without_get_offset,
@@ -122,7 +122,7 @@ void test_mlp_create_double_layer_null_get_field_offset(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
 }
 
-void test_mlp_create_double_layer_null_get_current_size(void) {
+void test_mlp_create_double_layers_null_get_current_size(void) {
   struct mlp_creation_functions funcs_without_get_size = {
       mlp_model_get_field_offsets, NULL};
   double_layers = mlp_create_double_layers(false, &funcs_without_get_size,
@@ -132,7 +132,7 @@ void test_mlp_create_double_layer_null_get_current_size(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
 }
 
-void test_mlp_create_double_layer_null_layer_sizes(void) {
+void test_mlp_create_double_layers_null_layer_sizes(void) {
   struct mlp_layer_size_data layer_data_without_sizes = {layer_size_count,
                                                          NULL};
   double_layers = mlp_create_double_layers(true, &creation_functions,
@@ -142,7 +142,7 @@ void test_mlp_create_double_layer_null_layer_sizes(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
-void test_mlp_create_double_layer_one_layer(void) {
+void test_mlp_create_double_layers_one_layer(void) {
   size_t one_layer[1] = {2U};
   struct mlp_layer_size_data two_layer_data = {1U, one_layer};
   double_layers = mlp_create_double_layers(true, &creation_functions,
@@ -152,7 +152,7 @@ void test_mlp_create_double_layer_one_layer(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
-void test_mlp_create_double_layer_get_null_offsets_obj(void) {
+void test_mlp_create_double_layers_get_null_offsets_obj(void) {
   struct mlp_creation_functions funcs_with_get_null_obj = {
       test_mlp_get_null_obj, mlp_model_get_current_size};
   double_layers = mlp_create_double_layers(false, &funcs_with_get_null_obj,
@@ -162,7 +162,7 @@ void test_mlp_create_double_layer_get_null_offsets_obj(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
 }
 
-void test_mlp_create_double_layer_get_zero_field(void) {
+void test_mlp_create_double_layers_get_zero_field(void) {
   struct mlp_creation_functions funcs_with_get_zero_field = {
       test_mlp_get_zero_field, mlp_model_get_current_size};
   double_layers = mlp_create_double_layers(false, &funcs_with_get_zero_field,
@@ -172,7 +172,7 @@ void test_mlp_create_double_layer_get_zero_field(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_HARDCODE, status);
 }
 
-void test_mlp_create_double_layer_get_null_field_offsets(void) {
+void test_mlp_create_double_layers_get_null_field_offsets(void) {
   struct mlp_creation_functions funcs_with_get_null_offset = {
       test_mlp_get_null_offsets, mlp_model_get_current_size};
   double_layers = mlp_create_double_layers(false, &funcs_with_get_null_offset,
@@ -182,7 +182,7 @@ void test_mlp_create_double_layer_get_null_field_offsets(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
 }
 
-void test_mlp_create_double_layer_large_layer_full_size(void) {
+void test_mlp_create_double_layers_large_layer_full_size(void) {
   size_t large[0] = {};
   struct mlp_layer_size_data test_size_data = {SIZE_MAX / 8U, large};
   double_layers = mlp_create_double_layers(true, &creation_functions,
@@ -192,7 +192,7 @@ void test_mlp_create_double_layer_large_layer_full_size(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
-void test_mlp_create_double_layer_zero_neuron(void) {
+void test_mlp_create_double_layers_zero_neuron(void) {
   size_t small_layer_sizes[3] = {1U, 0U, 1U};
   struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
   double_layers = mlp_create_double_layers(true, &creation_functions,
@@ -202,7 +202,7 @@ void test_mlp_create_double_layer_zero_neuron(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
-void test_mlp_create_double_layer_large_offset_sum(void) {
+void test_mlp_create_double_layers_large_offset_sum(void) {
   size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
                                  (SIZE_MAX >> 2) / 3};
   struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
@@ -213,7 +213,7 @@ void test_mlp_create_double_layer_large_offset_sum(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
 }
 
-void test_mlp_create_double_layer_large_layer_offsets(void) {
+void test_mlp_create_double_layers_large_layer_offsets(void) {
   size_t large[2] = {1U, 1U};
   struct mlp_layer_size_data test_size_data = {((SIZE_MAX - 1U) / 5U + 1U) >> 3,
                                                large};
@@ -1100,21 +1100,21 @@ void test_mlp_update_parameters_sgd_null_bias_gradient_layer(void) {
 int main(void) {
   UNITY_BEGIN();
 
-  RUN_TEST(test_mlp_create_double_layer_with_buffers);
-  RUN_TEST(test_mlp_create_double_layer_without_buffers);
-  RUN_TEST(test_mlp_create_double_layer_null_funcs);
-  RUN_TEST(test_mlp_create_double_layer_null_layer_size);
-  RUN_TEST(test_mlp_create_double_layer_null_get_field_offset);
-  RUN_TEST(test_mlp_create_double_layer_null_get_current_size);
-  RUN_TEST(test_mlp_create_double_layer_null_layer_sizes);
-  RUN_TEST(test_mlp_create_double_layer_one_layer);
-  RUN_TEST(test_mlp_create_double_layer_get_null_offsets_obj);
-  RUN_TEST(test_mlp_create_double_layer_get_zero_field);
-  RUN_TEST(test_mlp_create_double_layer_get_null_field_offsets);
-  RUN_TEST(test_mlp_create_double_layer_large_layer_full_size);
-  RUN_TEST(test_mlp_create_double_layer_zero_neuron);
-  RUN_TEST(test_mlp_create_double_layer_large_offset_sum);
-  RUN_TEST(test_mlp_create_double_layer_large_layer_offsets);
+  RUN_TEST(test_mlp_create_double_layers_with_buffers);
+  RUN_TEST(test_mlp_create_double_layers_without_buffers);
+  RUN_TEST(test_mlp_create_double_layers_null_funcs);
+  RUN_TEST(test_mlp_create_double_layers_null_layer_size);
+  RUN_TEST(test_mlp_create_double_layers_null_get_field_offset);
+  RUN_TEST(test_mlp_create_double_layers_null_get_current_size);
+  RUN_TEST(test_mlp_create_double_layers_null_layer_sizes);
+  RUN_TEST(test_mlp_create_double_layers_one_layer);
+  RUN_TEST(test_mlp_create_double_layers_get_null_offsets_obj);
+  RUN_TEST(test_mlp_create_double_layers_get_zero_field);
+  RUN_TEST(test_mlp_create_double_layers_get_null_field_offsets);
+  RUN_TEST(test_mlp_create_double_layers_large_layer_full_size);
+  RUN_TEST(test_mlp_create_double_layers_zero_neuron);
+  RUN_TEST(test_mlp_create_double_layers_large_offset_sum);
+  RUN_TEST(test_mlp_create_double_layers_large_layer_offsets);
 
   RUN_TEST(test_mlp_create_model);
   RUN_TEST(test_mlp_create_model_null_status);
