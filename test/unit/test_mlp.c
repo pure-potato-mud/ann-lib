@@ -547,7 +547,7 @@ void test_mlp_forward(void) {
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
 
@@ -687,7 +687,7 @@ void test_mlp_backward(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
   TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
@@ -913,10 +913,9 @@ void test_mlp_backward_null_activation_funcs(void) {
 }
 
 void test_mlp_update_parameters_sgd(void) {
-  float dump[17U] = {
-      0.375f,  -1.5f,       0.3749995f, -1.5000019f, 0.375f,  -1.5f,
-      -0.125f, -0.1250004f, -0.125f,    -0.375f,     -0.375f, -0.3750005f,
-      -1.75f,  -1.75f,      -1.75f,     -1.0625002f, -1.1875f};
+  float dump[17U] = {0.375f,  -1.5f,   0.375f,  -1.5f,    0.375f,  -1.5f,
+                     -0.125f, -0.125f, -0.125f, -0.375f,  -0.375f, -0.375f,
+                     -1.75f,  -1.75f,  -1.75f,  -1.0625f, -1.1875f};
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_UNLESS(status);
@@ -927,7 +926,7 @@ void test_mlp_update_parameters_sgd(void) {
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_UNLESS(status);
   TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, 0.125f));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
   TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
   TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
