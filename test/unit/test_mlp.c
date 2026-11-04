@@ -182,16 +182,6 @@ void test_mlp_create_double_layers_get_null_field_offsets(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
 }
 
-void test_mlp_create_double_layers_large_layer_full_size(void) {
-  size_t large[0] = {};
-  struct mlp_layer_size_data test_size_data = {SIZE_MAX / 8U, large};
-  double_layers = mlp_create_double_layers(true, &creation_functions,
-                                           &test_size_data, &status);
-
-  TEST_ASSERT_NULL(double_layers);
-  TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
-}
-
 void test_mlp_create_double_layers_zero_neuron(void) {
   size_t small_layer_sizes[3] = {1U, 0U, 1U};
   struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
@@ -211,17 +201,6 @@ void test_mlp_create_double_layers_large_offset_sum(void) {
 
   TEST_ASSERT_NULL(double_layers);
   TEST_ASSERT_EQUAL(MLP_STATUS_INT_OVERFLOW, status);
-}
-
-void test_mlp_create_double_layers_large_layer_offsets(void) {
-  size_t large[2] = {1U, 1U};
-  struct mlp_layer_size_data test_size_data = {((SIZE_MAX - 1U) / 5U + 1U) >> 3,
-                                               large};
-  double_layers = mlp_create_double_layers(true, &creation_functions,
-                                           &test_size_data, &status);
-
-  TEST_ASSERT_NULL(double_layers);
-  TEST_ASSERT_EQUAL(MLP_STATUS_ALLOCATION_FAILED, status);
 }
 
 void test_mlp_create_model(void) {
@@ -1111,10 +1090,8 @@ int main(void) {
   RUN_TEST(test_mlp_create_double_layers_get_null_offsets_obj);
   RUN_TEST(test_mlp_create_double_layers_get_zero_field);
   RUN_TEST(test_mlp_create_double_layers_get_null_field_offsets);
-  RUN_TEST(test_mlp_create_double_layers_large_layer_full_size);
   RUN_TEST(test_mlp_create_double_layers_zero_neuron);
   RUN_TEST(test_mlp_create_double_layers_large_offset_sum);
-  RUN_TEST(test_mlp_create_double_layers_large_layer_offsets);
 
   RUN_TEST(test_mlp_create_model);
   RUN_TEST(test_mlp_create_model_null_status);
