@@ -41,4 +41,12 @@ struct mlp_gradient_buffer {
   float **bias_gradient_layers;
 };
 
+struct mlp_msgd_buffer {
+  struct mlp_layer_metadata layer_metadata;
+  struct mlp_layer_data layer_data;
+  float momentum;
+  float **weight_velocity_layers;
+  float **bias_velocity_layers;
+};
+
 #endif /* INTERNAL_MLP_H_ */

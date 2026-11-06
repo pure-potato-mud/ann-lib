@@ -11,6 +11,7 @@ extern size_t layer_sizes[3];
 extern const size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
+extern float momentum;
 extern float leaky_relu(float value);
 extern float (*activation_funcs[3U])(float);
 extern int test_mlp_get_gradients(size_t size, const float *expect,
@@ -20,6 +21,7 @@ static struct mlp_double_layers *double_layers;
 static struct mlp_model *model;
 static struct mlp_backward_buffer *backward_buffer;
 static struct mlp_gradient_buffer *gradient_buffer;
+static struct mlp_msgd_buffer *msgd_buffer;
 static enum mlp_status status;
 
 static float output[2], gradients[2];
@@ -68,6 +70,7 @@ void setUp(void) {
   model = NULL;
   backward_buffer = NULL;
   gradient_buffer = NULL;
+  msgd_buffer = NULL;
   status = -1;
 }
 
@@ -76,6 +79,7 @@ void tearDown(void) {
   mlp_destroy_model(model);
   mlp_destroy_backward_buffer(backward_buffer);
   mlp_destroy_gradient_buffer(gradient_buffer);
+  mlp_destroy_msgd_buffer(msgd_buffer);
 }
 
 void test_mlp_create_double_layers_with_buffers(void) {
@@ -263,6 +267,27 @@ void test_mlp_create_gradient_buffer_null_layer_sizes_ref(void) {
   gradient_buffer = mlp_create_gradient_buffer(&test_size_data, &status);
 
   TEST_ASSERT_NULL(gradient_buffer);
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
+}
+
+void test_mlp_create_msgd_buffer(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+}
+
+void test_mlp_create_msgd_buffer_null_status(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, NULL);
+
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+}
+
+void test_mlp_create_msgd_buffer_null_layer_sizes_ref(void) {
+  struct mlp_layer_size_data test_size_data = {layer_size_count, NULL};
+  msgd_buffer = mlp_create_msgd_buffer(&test_size_data, &status);
+
+  TEST_ASSERT_NULL(msgd_buffer);
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, status);
 }
 
@@ -518,6 +543,60 @@ void test_mlp_scale_gradients_null_element_end(void) {
 
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_STATE,
                     mlp_scale_gradients(gradient_buffer, 0.5f));
+}
+
+void test_mlp_clear_msgd_buffer(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_NOT_NULL(msgd_buffer->layer_data.layers);
+  TEST_ASSERT_UNLESS(status);
+  float *i;
+  for (i = msgd_buffer->layer_data.layers[0U];
+       i < msgd_buffer->layer_data.elements_end; ++i) {
+    *i = 0.5f;
+  }
+
+  TEST_ASSERT_UNLESS(mlp_clear_msgd_buffer(msgd_buffer));
+
+  for (i = msgd_buffer->layer_data.layers[0U];
+       i < msgd_buffer->layer_data.elements_end; ++i) {
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, *i);
+  }
+}
+
+void test_mlp_clear_msgd_buffer_null_model(void) {
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_clear_msgd_buffer(NULL));
+}
+
+void test_mlp_clear_msgd_buffer_null_weight_velocity_layers(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer->weight_velocity_layers = NULL;
+
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD,
+                    mlp_clear_msgd_buffer(msgd_buffer));
+}
+
+void test_mlp_clear_msgd_buffer_null_weight_velocities(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_NOT_NULL(msgd_buffer->bias_velocity_layers);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer->weight_velocity_layers[0U] = NULL;
+
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER,
+                    mlp_clear_msgd_buffer(msgd_buffer));
+}
+
+void test_mlp_clear_msgd_buffer_null_element_end(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer->layer_data.elements_end = NULL;
+
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_STATE,
+                    mlp_clear_msgd_buffer(msgd_buffer));
 }
 
 void test_mlp_forward(void) {
@@ -1076,6 +1155,337 @@ void test_mlp_update_parameters_sgd_null_bias_gradient_layer(void) {
                         mlp_update_parameters_sgd(model, gradient_buffer));
 }
 
+void test_mlp_update_parameters_msgd(void) {
+  float dump[17U] = {-0.171884f, -3.687534f, -0.171884f, -3.687534f, -0.171884f,
+                     -3.687534f, -1.109950f, -1.109950f, -1.109950f, -1.578143f,
+                     -1.578143f, -1.578143f, -2.843767f, -2.843767f, -2.843767f,
+                     -1.550658f, -1.788937f};
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  backward_buffer = mlp_create_backward_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(backward_buffer);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
+  TEST_ASSERT_UNLESS(mlp_set_momentum(msgd_buffer, momentum));
+  TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
+  TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
+  TEST_ASSERT_UNLESS(mlp_clear_msgd_buffer(msgd_buffer));
+  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(
+      mlp_backward(model, backward_buffer, gradients, gradient_buffer));
+  TEST_ASSERT_UNLESS(
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+
+  TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
+  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_UNLESS(
+      mlp_backward(model, backward_buffer, gradients, gradient_buffer));
+  TEST_ASSERT_UNLESS(
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+
+  float *begin = model->weight_layers[0], *end = model->layer_data.elements_end;
+  TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-6f, dump, begin, end - begin);
+}
+
+void test_mlp_update_parameters_msgd_different_model_metadata(void) {
+  model = mlp_create_model(&size_data_another, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
+
+  int result = mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer);
+
+  TEST_ASSERT_EQUAL_INT(MLP_STATUS_TOPOLOGY_MISMATCH, result);
+}
+
+void test_mlp_update_parameters_msgd_different_gradient_buffer_metadata(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data_another, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  int result = mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer);
+
+  TEST_ASSERT_EQUAL_INT(MLP_STATUS_TOPOLOGY_MISMATCH, result);
+}
+
+void test_mlp_update_parameters_msgd_different_msgd_buffer_metadata(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data_another, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
+
+  int result = mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer);
+
+  TEST_ASSERT_EQUAL_INT(MLP_STATUS_TOPOLOGY_MISMATCH, result);
+}
+
+void test_mlp_update_parameters_msgd_null_layer_sizes(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  model->layer_metadata.layer_sizes_ref = NULL;
+  gradient_buffer->layer_metadata.layer_sizes_ref = NULL;
+  int result = mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer);
+
+  TEST_ASSERT_EQUAL_INT(MLP_STATUS_TOPOLOGY_MISMATCH, result);
+}
+
+void test_mlp_update_parameters_msgd_null_weights(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  model->weight_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_single_layer_weights(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  model->weight_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_bias_layers(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  model->bias_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_biases(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  model->bias_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_weight_gradient_layers(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  gradient_buffer->weight_gradient_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_weight_gradient_layer(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  gradient_buffer->weight_gradient_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_bias_gradient_layers(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  gradient_buffer->bias_gradient_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_bias_gradient_layer(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  gradient_buffer->bias_gradient_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_weight_velocity_layers(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  msgd_buffer->weight_velocity_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_weight_velocities(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  msgd_buffer->weight_velocity_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_bias_velocity_layers(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  msgd_buffer->bias_velocity_layers = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_FIELD,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
+void test_mlp_update_parameters_msgd_null_bias_velocities(void) {
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_UNLESS(status);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_UNLESS(status);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
+
+  msgd_buffer->bias_velocity_layers[0] = NULL;
+  TEST_ASSERT_EQUAL_INT(
+      MLP_STATUS_INVALID_LAYER,
+      mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
+}
+
 int main(void) {
   UNITY_BEGIN();
 
@@ -1104,6 +1514,10 @@ int main(void) {
   RUN_TEST(test_mlp_create_gradient_buffer);
   RUN_TEST(test_mlp_create_gradient_buffer_null_status);
   RUN_TEST(test_mlp_create_gradient_buffer_null_layer_sizes_ref);
+
+  RUN_TEST(test_mlp_create_msgd_buffer);
+  RUN_TEST(test_mlp_create_msgd_buffer_null_status);
+  RUN_TEST(test_mlp_create_msgd_buffer_null_layer_sizes_ref);
 
   RUN_TEST(test_mlp_set_learning_rate);
   RUN_TEST(test_mlp_set_learning_rate_null_model);
@@ -1136,6 +1550,12 @@ int main(void) {
   RUN_TEST(test_mlp_scale_gradients_null_bias_layers);
   RUN_TEST(test_mlp_scale_gradients_null_bias_layer);
   RUN_TEST(test_mlp_scale_gradients_null_element_end);
+
+  RUN_TEST(test_mlp_clear_msgd_buffer);
+  RUN_TEST(test_mlp_clear_msgd_buffer_null_model);
+  RUN_TEST(test_mlp_clear_msgd_buffer_null_weight_velocity_layers);
+  RUN_TEST(test_mlp_clear_msgd_buffer_null_weight_velocities);
+  RUN_TEST(test_mlp_clear_msgd_buffer_null_element_end);
 
   RUN_TEST(test_mlp_forward);
   RUN_TEST(test_mlp_forward_different_model_metadata);
@@ -1174,6 +1594,24 @@ int main(void) {
   RUN_TEST(test_mlp_update_parameters_sgd_null_weight_gradient_layer);
   RUN_TEST(test_mlp_update_parameters_sgd_null_bias_gradient_layers);
   RUN_TEST(test_mlp_update_parameters_sgd_null_bias_gradient_layer);
+
+  RUN_TEST(test_mlp_update_parameters_msgd);
+  RUN_TEST(test_mlp_update_parameters_msgd_different_model_metadata);
+  RUN_TEST(test_mlp_update_parameters_msgd_different_gradient_buffer_metadata);
+  RUN_TEST(test_mlp_update_parameters_msgd_different_msgd_buffer_metadata);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_layer_sizes);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weights);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_single_layer_weights);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_biases);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_gradient_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_gradient_layer);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_gradient_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_gradient_layer);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_velocity_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_velocities);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_velocity_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_velocities);
 
   return UNITY_END();
 }
