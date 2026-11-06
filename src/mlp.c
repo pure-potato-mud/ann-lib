@@ -574,10 +574,9 @@ mlp_update_parameters_sgd(mlp_model_t *model,
   float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
   float **const bias_layers = model->bias_layers;
-  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || weight_gradient_layers == NULL ||
       bias_gradient_layers == NULL || weight_layers == NULL ||
-      bias_layers == NULL || activation_funcs_ref == NULL) {
+      bias_layers == NULL) {
     return MLP_STATUS_INVALID_FIELD;
   }
 
@@ -586,7 +585,6 @@ mlp_update_parameters_sgd(mlp_model_t *model,
   size_t j_idx;
   float *weight_gradient_layer = NULL, *bias_gradient_layer = NULL,
         *weights = NULL, *biases = NULL;
-  float (*activation_function)(float) = NULL;
   for (i = last_layer_idx; i > 0U;) {
     --i;
 
@@ -597,9 +595,8 @@ mlp_update_parameters_sgd(mlp_model_t *model,
     bias_gradient_layer = bias_gradient_layers[i];
     weights = weight_layers[i];
     biases = bias_layers[i];
-    activation_function = activation_funcs_ref[i];
     if (weight_gradient_layer == NULL || bias_gradient_layer == NULL ||
-        weights == NULL || biases == NULL || activation_function == NULL) {
+        weights == NULL || biases == NULL) {
       return MLP_STATUS_INVALID_LAYER;
     }
 
@@ -642,11 +639,10 @@ mlp_update_parameters_msgd(struct mlp_model *model,
   float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
   float **const bias_layers = model->bias_layers;
-  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
   if (layer_sizes == NULL || weight_velocity_layers == NULL ||
       bias_velocity_layers == NULL || weight_gradient_layers == NULL ||
       bias_gradient_layers == NULL || weight_layers == NULL ||
-      bias_layers == NULL || activation_funcs_ref == NULL) {
+      bias_layers == NULL) {
     return MLP_STATUS_INVALID_FIELD;
   }
 
@@ -656,7 +652,6 @@ mlp_update_parameters_msgd(struct mlp_model *model,
   float *weight_velocities = NULL, *bias_velocities = NULL,
         *weight_gradient_layer = NULL, *bias_gradient_layer = NULL,
         *weights = NULL, *biases = NULL;
-  float (*activation_function)(float) = NULL;
   for (i = last_layer_idx; i > 0U;) {
     --i;
 
@@ -669,10 +664,9 @@ mlp_update_parameters_msgd(struct mlp_model *model,
     bias_gradient_layer = bias_gradient_layers[i];
     weights = weight_layers[i];
     biases = bias_layers[i];
-    activation_function = activation_funcs_ref[i];
     if (weight_velocities == NULL || bias_velocities == NULL ||
         weight_gradient_layer == NULL || bias_gradient_layer == NULL ||
-        weights == NULL || biases == NULL || activation_function == NULL) {
+        weights == NULL || biases == NULL) {
       return MLP_STATUS_INVALID_LAYER;
     }
 
