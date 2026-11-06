@@ -72,7 +72,7 @@ void setUp(void) {
 }
 
 void tearDown(void) {
-  mlp_destory_double_layers(double_layers);
+  mlp_destroy_double_layers(double_layers);
   mlp_destroy_model(model);
   mlp_destroy_backward_buffer(backward_buffer);
   mlp_destroy_gradient_buffer(gradient_buffer);
