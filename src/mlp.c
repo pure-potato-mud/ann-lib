@@ -1,3 +1,4 @@
+#include "mlp.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -220,7 +221,16 @@ mlp_create_msgd_buffer(const struct mlp_layer_size_data *size_data,
   buffer->weight_velocity_layers = layers;
   buffer->bias_velocity_layers = layers + dl->field_offsets->field_offsets[0U];
 
-  enum mlp_status status_another = mlp_clear_msgd_buffer(buffer);
+  enum mlp_status status_another = mlp_set_momentum(buffer, 0.0f);
+  if (status_another != MLP_STATUS_SUCCESS) {
+    if (status != NULL) { *status = status_another; }
+    dl->layers = NULL;
+    dl->elements_begin = NULL;
+    mlp_destroy_double_layers(dl);
+    mlp_destroy_msgd_buffer(buffer);
+    return NULL;
+  }
+  status_another = mlp_clear_msgd_buffer(buffer);
   if (status_another != MLP_STATUS_SUCCESS) {
     if (status != NULL) { *status = status_another; }
     dl->layers = NULL;
