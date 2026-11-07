@@ -7,6 +7,7 @@ typedef struct mlp_layer_size_data mlp_layer_size_data_t;
 typedef struct mlp_model mlp_model_t;
 typedef struct mlp_backward_buffer mlp_backward_buffer_t;
 typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
+typedef struct mlp_msgd_buffer mlp_msgd_buffer_t;
 typedef enum mlp_status mlp_status_t;
 
 struct mlp_layer_size_data {
@@ -59,6 +60,14 @@ mlp_create_gradient_buffer(const mlp_layer_size_data_t *size_data,
 // free mlp_gradient_buffer safely.
 void mlp_destroy_gradient_buffer(mlp_gradient_buffer_t *buffer);
 
+// create a buffer for store velocities.
+mlp_msgd_buffer_t *
+mlp_create_msgd_buffer(const mlp_layer_size_data_t *size_data,
+                       mlp_status_t *status);
+
+// free mlp_msgd_buffer safely.
+void mlp_destroy_msgd_buffer(struct mlp_msgd_buffer *buffer);
+
 // set learning rate.
 // the MLP cannot be NULL.
 mlp_status_t mlp_set_learning_rate(mlp_model_t *model, float learning_rate);
@@ -85,6 +94,12 @@ mlp_status_t mlp_clear_gradient_buffer(mlp_gradient_buffer_t *buffer);
 // times a scaler for each element in gradient_buffer.
 mlp_status_t mlp_scale_gradients(mlp_gradient_buffer_t *buffer, float scalar);
 
+// set momentum of msgd_buffer.
+mlp_status_t mlp_set_momentum(mlp_msgd_buffer_t *buffer, float momentum);
+
+// fill all element in msgd buffer to zero.
+mlp_status_t mlp_clear_msgd_buffer(mlp_msgd_buffer_t *buffer);
+
 // do forward propagation.
 // the MLP(and it's members) and the input cannot be NULL, but the output can.
 // the output will be fill in values if it is not NULL.
@@ -103,5 +118,10 @@ mlp_status_t mlp_backward(const mlp_model_t *model,
 mlp_status_t
 mlp_update_parameters_sgd(mlp_model_t *model,
                           const mlp_gradient_buffer_t *gradient_total);
+
+// momentum sgd
+mlp_status_t
+mlp_update_parameters_msgd(mlp_model_t *model, mlp_msgd_buffer_t *msgd_buffer,
+                           const mlp_gradient_buffer_t *gradient_total);
 
 #endif /* ann_lib_mlp_h_ */
