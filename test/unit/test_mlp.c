@@ -545,6 +545,21 @@ void test_mlp_scale_gradients_null_element_end(void) {
                     mlp_scale_gradients(gradient_buffer, 0.5f));
 }
 
+void test_mlp_set_momentum(void) {
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_UNLESS(status);
+
+  TEST_ASSERT_UNLESS(mlp_set_momentum(msgd_buffer, momentum));
+
+  TEST_ASSERT_EQUAL_FLOAT(momentum, msgd_buffer->momentum);
+}
+
+void test_mlp_set_momentum_null_buffer(void) {
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT,
+                    mlp_set_momentum(NULL, momentum));
+}
+
 void test_mlp_clear_msgd_buffer(void) {
   msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(msgd_buffer);
@@ -1550,6 +1565,9 @@ int main(void) {
   RUN_TEST(test_mlp_scale_gradients_null_bias_layers);
   RUN_TEST(test_mlp_scale_gradients_null_bias_layer);
   RUN_TEST(test_mlp_scale_gradients_null_element_end);
+
+  RUN_TEST(test_mlp_set_momentum);
+  RUN_TEST(test_mlp_set_momentum_null_buffer);
 
   RUN_TEST(test_mlp_clear_msgd_buffer);
   RUN_TEST(test_mlp_clear_msgd_buffer_null_model);
