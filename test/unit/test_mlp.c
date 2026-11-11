@@ -598,7 +598,7 @@ void test_mlp_clear_msgd_buffer_null_weight_velocity_layers(void) {
                     mlp_clear_msgd_buffer(msgd_buffer));
 }
 
-void test_mlp_clear_msgd_buffer_null_weight_velocities(void) {
+void test_mlp_clear_msgd_buffer_null_weight_velocity_layer(void) {
   msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(msgd_buffer);
   TEST_ASSERT_NOT_NULL(msgd_buffer->bias_velocity_layers);
@@ -719,7 +719,7 @@ void test_mlp_forward_null_weight_layers(void) {
                     mlp_forward(model, input, NULL, NULL));
 }
 
-void test_mlp_forward_null_single_weights(void) {
+void test_mlp_forward_null_weight_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -743,7 +743,7 @@ void test_mlp_forward_null_bias_layers(void) {
                     mlp_forward(model, input, NULL, NULL));
 }
 
-void test_mlp_forward_null_biases(void) {
+void test_mlp_forward_null_bias_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -969,7 +969,7 @@ void test_mlp_backward_null_output_layer(void) {
       mlp_backward(model, backward_buffer, gradients, gradient_buffer));
 }
 
-void test_mlp_backward_null_weights(void) {
+void test_mlp_backward_null_weight_layers(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -990,7 +990,7 @@ void test_mlp_backward_null_weights(void) {
       mlp_backward(model, backward_buffer, gradients, gradient_buffer));
 }
 
-void test_mlp_backward_null_single_layer_weights(void) {
+void test_mlp_backward_null_weight_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1114,7 +1114,7 @@ void test_mlp_update_parameters_sgd_null_layer_sizes(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_TOPOLOGY_MISMATCH, result);
 }
 
-void test_mlp_update_parameters_sgd_null_weights(void) {
+void test_mlp_update_parameters_sgd_null_weight_layers(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1129,7 +1129,7 @@ void test_mlp_update_parameters_sgd_null_weights(void) {
                     mlp_update_parameters_sgd(model, gradient_buffer));
 }
 
-void test_mlp_update_parameters_sgd_null_single_layer_weights(void) {
+void test_mlp_update_parameters_sgd_null_weight_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1159,7 +1159,7 @@ void test_mlp_update_parameters_sgd_null_bias_layers(void) {
                     mlp_update_parameters_sgd(model, gradient_buffer));
 }
 
-void test_mlp_update_parameters_sgd_null_biases(void) {
+void test_mlp_update_parameters_sgd_null_bias_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1367,7 +1367,7 @@ void test_mlp_update_parameters_msgd_null_layer_sizes(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_TOPOLOGY_MISMATCH, result);
 }
 
-void test_mlp_update_parameters_msgd_null_weights(void) {
+void test_mlp_update_parameters_msgd_null_weight_layers(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1386,7 +1386,7 @@ void test_mlp_update_parameters_msgd_null_weights(void) {
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 }
 
-void test_mlp_update_parameters_msgd_null_single_layer_weights(void) {
+void test_mlp_update_parameters_msgd_null_weight_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1424,7 +1424,7 @@ void test_mlp_update_parameters_msgd_null_bias_layers(void) {
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 }
 
-void test_mlp_update_parameters_msgd_null_biases(void) {
+void test_mlp_update_parameters_msgd_null_bias_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1538,7 +1538,7 @@ void test_mlp_update_parameters_msgd_null_weight_velocity_layers(void) {
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 }
 
-void test_mlp_update_parameters_msgd_null_weight_velocities(void) {
+void test_mlp_update_parameters_msgd_null_weight_velocity_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1576,7 +1576,7 @@ void test_mlp_update_parameters_msgd_null_bias_velocity_layers(void) {
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 }
 
-void test_mlp_update_parameters_msgd_null_bias_velocities(void) {
+void test_mlp_update_parameters_msgd_null_bias_velocity_layer(void) {
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -1666,7 +1666,7 @@ int main(void) {
   RUN_TEST(test_mlp_clear_msgd_buffer);
   RUN_TEST(test_mlp_clear_msgd_buffer_null_model);
   RUN_TEST(test_mlp_clear_msgd_buffer_null_weight_velocity_layers);
-  RUN_TEST(test_mlp_clear_msgd_buffer_null_weight_velocities);
+  RUN_TEST(test_mlp_clear_msgd_buffer_null_weight_velocity_layer);
   RUN_TEST(test_mlp_clear_msgd_buffer_null_element_end);
 
   RUN_TEST(test_mlp_forward);
@@ -1676,9 +1676,9 @@ int main(void) {
   RUN_TEST(test_mlp_forward_null_buffers);
   RUN_TEST(test_mlp_forward_null_buffer);
   RUN_TEST(test_mlp_forward_null_weight_layers);
-  RUN_TEST(test_mlp_forward_null_single_weights);
+  RUN_TEST(test_mlp_forward_null_weight_layer);
   RUN_TEST(test_mlp_forward_null_bias_layers);
-  RUN_TEST(test_mlp_forward_null_biases);
+  RUN_TEST(test_mlp_forward_null_bias_layer);
   RUN_TEST(test_mlp_forward_null_activation_funcs);
 
   RUN_TEST(test_mlp_backward);
@@ -1690,18 +1690,18 @@ int main(void) {
   RUN_TEST(test_mlp_backward_null_layer);
   RUN_TEST(test_mlp_backward_null_output_layers);
   RUN_TEST(test_mlp_backward_null_output_layer);
-  RUN_TEST(test_mlp_backward_null_weights);
-  RUN_TEST(test_mlp_backward_null_single_layer_weights);
+  RUN_TEST(test_mlp_backward_null_weight_layers);
+  RUN_TEST(test_mlp_backward_null_weight_layer);
   RUN_TEST(test_mlp_backward_null_activation_funcs);
 
   RUN_TEST(test_mlp_update_parameters_sgd);
   RUN_TEST(test_mlp_update_parameters_sgd_different_model_metadata);
   RUN_TEST(test_mlp_update_parameters_sgd_different_gradient_buffer_metadata);
   RUN_TEST(test_mlp_update_parameters_sgd_null_layer_sizes);
-  RUN_TEST(test_mlp_update_parameters_sgd_null_weights);
-  RUN_TEST(test_mlp_update_parameters_sgd_null_single_layer_weights);
+  RUN_TEST(test_mlp_update_parameters_sgd_null_weight_layers);
+  RUN_TEST(test_mlp_update_parameters_sgd_null_weight_layer);
   RUN_TEST(test_mlp_update_parameters_sgd_null_bias_layers);
-  RUN_TEST(test_mlp_update_parameters_sgd_null_biases);
+  RUN_TEST(test_mlp_update_parameters_sgd_null_bias_layer);
   RUN_TEST(test_mlp_update_parameters_sgd_null_weight_gradient_layers);
   RUN_TEST(test_mlp_update_parameters_sgd_null_weight_gradient_layer);
   RUN_TEST(test_mlp_update_parameters_sgd_null_bias_gradient_layers);
@@ -1712,18 +1712,18 @@ int main(void) {
   RUN_TEST(test_mlp_update_parameters_msgd_different_gradient_buffer_metadata);
   RUN_TEST(test_mlp_update_parameters_msgd_different_msgd_buffer_metadata);
   RUN_TEST(test_mlp_update_parameters_msgd_null_layer_sizes);
-  RUN_TEST(test_mlp_update_parameters_msgd_null_weights);
-  RUN_TEST(test_mlp_update_parameters_msgd_null_single_layer_weights);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_layers);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_layer);
   RUN_TEST(test_mlp_update_parameters_msgd_null_bias_layers);
-  RUN_TEST(test_mlp_update_parameters_msgd_null_biases);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_layer);
   RUN_TEST(test_mlp_update_parameters_msgd_null_weight_gradient_layers);
   RUN_TEST(test_mlp_update_parameters_msgd_null_weight_gradient_layer);
   RUN_TEST(test_mlp_update_parameters_msgd_null_bias_gradient_layers);
   RUN_TEST(test_mlp_update_parameters_msgd_null_bias_gradient_layer);
   RUN_TEST(test_mlp_update_parameters_msgd_null_weight_velocity_layers);
-  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_velocities);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_weight_velocity_layer);
   RUN_TEST(test_mlp_update_parameters_msgd_null_bias_velocity_layers);
-  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_velocities);
+  RUN_TEST(test_mlp_update_parameters_msgd_null_bias_velocity_layer);
 
   return UNITY_END();
 }
