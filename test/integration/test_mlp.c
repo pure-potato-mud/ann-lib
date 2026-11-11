@@ -8,6 +8,8 @@ extern const size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
+extern float one(void);
+extern float neg_half(void);
 extern float leaky_relu(float value);
 extern float (*activation_funcs[3U])(float);
 extern int test_mlp_get_gradients(size_t size, const float *expect,
@@ -51,8 +53,8 @@ void test_mlp_propagation_and_sgd_update(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_activation_fns_ref(model, activation_funcs));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -92,8 +94,8 @@ void test_mlp_propagation_and_msgd_update(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_activation_fns_ref(model, activation_funcs));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,

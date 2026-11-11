@@ -12,6 +12,8 @@ extern const size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
+extern float one(void);
+extern float neg_half(void);
 extern float leaky_relu(float value);
 extern float (*activation_funcs[3U])(float);
 extern int test_mlp_get_gradients(size_t size, const float *expect,
@@ -342,7 +344,7 @@ void test_mlp_fill_biases(void) {
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, one));
 
   TEST_ASSERT_EQUAL_FLOAT_ARRAY(except_layer1_biases, model->bias_layers[0U],
                                 3U);
@@ -351,7 +353,7 @@ void test_mlp_fill_biases(void) {
 }
 
 void test_mlp_fill_biases_null_model(void) {
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_biases(NULL, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_biases(NULL, one));
 }
 
 void test_mlp_fill_biases_null_bias_layers(void) {
@@ -360,7 +362,7 @@ void test_mlp_fill_biases_null_bias_layers(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->bias_layers = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_biases(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_biases(model, one));
 }
 
 void test_mlp_fill_biases_null_bias_layer(void) {
@@ -369,7 +371,7 @@ void test_mlp_fill_biases_null_bias_layer(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->bias_layers[0U] = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_biases(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_biases(model, one));
 }
 
 void test_mlp_fill_biases_null_element_end(void) {
@@ -378,7 +380,7 @@ void test_mlp_fill_biases_null_element_end(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->layer_data.elements_end = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_STATE, mlp_fill_biases(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_STATE, mlp_fill_biases(model, one));
 }
 
 void test_mlp_fill_weights(void) {
@@ -386,7 +388,7 @@ void test_mlp_fill_weights(void) {
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
 
   size_t i;
   for (i = 0U; i < 6U; ++i) {
@@ -398,7 +400,7 @@ void test_mlp_fill_weights(void) {
 }
 
 void test_mlp_fill_weights_null_model(void) {
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_weights(NULL, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT, mlp_fill_weights(NULL, one));
 }
 
 void test_mlp_fill_weights_null_weight_layers(void) {
@@ -407,7 +409,7 @@ void test_mlp_fill_weights_null_weight_layers(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->weight_layers = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_weights(model, one));
 }
 
 void test_mlp_fill_weights_null_bias_layers(void) {
@@ -416,7 +418,7 @@ void test_mlp_fill_weights_null_bias_layers(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->bias_layers = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_FIELD, mlp_fill_weights(model, one));
 }
 
 void test_mlp_fill_weights_null_weight_layer(void) {
@@ -425,7 +427,7 @@ void test_mlp_fill_weights_null_weight_layer(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->weight_layers[0U] = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_weights(model, one));
 }
 
 void test_mlp_fill_weights_null_bias_layer(void) {
@@ -434,7 +436,7 @@ void test_mlp_fill_weights_null_bias_layer(void) {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
   model->bias_layers[0U] = NULL;
 
-  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_LAYER, mlp_fill_weights(model, one));
 }
 
 void test_mlp_clear_gradient_buffer(void) {
@@ -628,8 +630,8 @@ void test_mlp_forward(void) {
                     mlp_set_activation_fns_ref(model, activation_funcs));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
 
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_forward(model, input, output, NULL));
@@ -780,8 +782,8 @@ void test_mlp_backward(void) {
                     mlp_set_activation_fns_ref(model, activation_funcs));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_forward(model, input, output, backward_buffer));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -1046,8 +1048,8 @@ void test_mlp_update_parameters_sgd(void) {
                     mlp_set_activation_fns_ref(model, activation_funcs));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_forward(model, input, output, backward_buffer));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -1256,8 +1258,8 @@ void test_mlp_update_parameters_msgd(void) {
                     mlp_set_learning_rate(model, learning_rate));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_set_momentum(msgd_buffer, momentum));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, 1.0f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_clear_msgd_buffer(msgd_buffer));
