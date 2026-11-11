@@ -28,7 +28,8 @@ enum mlp_status {
   MLP_STATUS_UNKNOWN_ERROR,
 };
 
-// create a mlp.
+// create a mlp without parameter initialisation.
+// please init before using it.
 // layer_sizes_ref will keep and store in mlp. DO NOT free nor edit
 // layer_sizes_ref before mlp been free.
 // layer_sizes_ref cannot be NULL and have no zero in it.
@@ -82,11 +83,11 @@ mlp_status_t mlp_set_activation_fns_ref(mlp_model_t *model,
 
 // fill all bias with a value.
 // MLP and it's biases cannot be NULL.
-mlp_status_t mlp_fill_biases(mlp_model_t *model, float value);
+mlp_status_t mlp_fill_biases(mlp_model_t *model, float (*func)(void));
 
 // fill all weights with a value.
 // MLP and it's weights field cannot be NULL.
-mlp_status_t mlp_fill_weights(mlp_model_t *model, float value);
+mlp_status_t mlp_fill_weights(mlp_model_t *model, float (*func)(void));
 
 // fill all element in gradient buffer to zero.
 mlp_status_t mlp_clear_gradient_buffer(mlp_gradient_buffer_t *buffer);

@@ -8,6 +8,8 @@ extern const size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
+extern float one(void);
+extern float neg_half(void);
 extern float leaky_relu(float value);
 extern float (*activation_funcs[3U])(float);
 extern int test_mlp_get_gradients(size_t size, const float *expect,
@@ -49,18 +51,26 @@ void test_mlp_propagation_and_sgd_update(void) {
   gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(gradient_buffer);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
-  TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
-  TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_learning_rate(model, learning_rate));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_activation_fns_ref(model, activation_funcs));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_forward(model, input, output, backward_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_EQUAL_FLOAT_ARRAY(expect_output_1, output, 2U);
-  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
-  TEST_ASSERT_UNLESS(
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    test_mlp_get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_EQUAL(
+      MLP_STATUS_SUCCESS,
       mlp_backward(model, backward_buffer, gradients, gradient_buffer));
-  TEST_ASSERT_UNLESS(mlp_update_parameters_sgd(model, gradient_buffer));
-  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, NULL));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_update_parameters_sgd(model, gradient_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_forward(model, input, output, NULL));
   TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-8, expect_output_2, output, 2U);
 }
 
@@ -82,31 +92,45 @@ void test_mlp_propagation_and_msgd_update(void) {
   msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(msgd_buffer);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
-  TEST_ASSERT_UNLESS(mlp_set_learning_rate(model, learning_rate));
-  TEST_ASSERT_UNLESS(mlp_fill_weights(model, 1.0f));
-  TEST_ASSERT_UNLESS(mlp_fill_biases(model, -0.5f));
-  TEST_ASSERT_UNLESS(mlp_set_activation_fns_ref(model, activation_funcs));
-  TEST_ASSERT_UNLESS(mlp_set_momentum(msgd_buffer, momentum));
-  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_learning_rate(model, learning_rate));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, neg_half));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_activation_fns_ref(model, activation_funcs));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_momentum(msgd_buffer, momentum));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_forward(model, input, output, backward_buffer));
   TEST_ASSERT_EQUAL_FLOAT_ARRAY(expect_output_1, output, 2U);
-  TEST_ASSERT_UNLESS(mlp_clear_msgd_buffer(msgd_buffer));
-  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
-  TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
-  TEST_ASSERT_UNLESS(
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_clear_msgd_buffer(msgd_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    test_mlp_get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_clear_gradient_buffer(gradient_buffer));
+  TEST_ASSERT_EQUAL(
+      MLP_STATUS_SUCCESS,
       mlp_backward(model, backward_buffer, gradients, gradient_buffer));
-  TEST_ASSERT_UNLESS(
+  TEST_ASSERT_EQUAL(
+      MLP_STATUS_SUCCESS,
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 
-  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, backward_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_forward(model, input, output, backward_buffer));
   TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-8, expect_output_2, output, 2U);
-  TEST_ASSERT_UNLESS(test_mlp_get_gradients(2U, answer, output, gradients));
-  TEST_ASSERT_UNLESS(mlp_clear_gradient_buffer(gradient_buffer));
-  TEST_ASSERT_UNLESS(
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    test_mlp_get_gradients(2U, answer, output, gradients));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_clear_gradient_buffer(gradient_buffer));
+  TEST_ASSERT_EQUAL(
+      MLP_STATUS_SUCCESS,
       mlp_backward(model, backward_buffer, gradients, gradient_buffer));
-  TEST_ASSERT_UNLESS(
+  TEST_ASSERT_EQUAL(
+      MLP_STATUS_SUCCESS,
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
 
-  TEST_ASSERT_UNLESS(mlp_forward(model, input, output, NULL));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_forward(model, input, output, NULL));
   TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-8, expect_output_3, output, 2U);
 }
 
