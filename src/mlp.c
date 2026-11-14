@@ -1,6 +1,3 @@
-#include "mlp.h"
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include <internal/mlp.h>
