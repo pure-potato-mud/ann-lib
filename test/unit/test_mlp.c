@@ -3,7 +3,6 @@
 #include <unity.h>
 
 #include <internal/mlp.h>
-#include <internal/mlp_creation.h>
 
 extern float input[2], answer[2];
 extern size_t layer_sizes[3];

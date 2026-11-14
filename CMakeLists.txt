@@ -13,7 +13,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(mlp STATIC
   src/mlp.c
-  src/mlp_creation.c
 )
 
 target_include_directories(mlp
