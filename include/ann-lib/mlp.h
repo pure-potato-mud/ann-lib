@@ -3,13 +3,6 @@
 
 #include <stddef.h>
 
-typedef struct mlp_layer_size_data mlp_layer_size_data_t;
-typedef struct mlp_model mlp_model_t;
-typedef struct mlp_backward_buffer mlp_backward_buffer_t;
-typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
-typedef struct mlp_msgd_buffer mlp_msgd_buffer_t;
-typedef enum mlp_status mlp_status_t;
-
 struct mlp_layer_size_data {
   size_t layer_size_count;
   size_t *layer_sizes_ref;
@@ -27,6 +20,13 @@ enum mlp_status {
   MLP_STATUS_INVALID_HARDCODE,
   MLP_STATUS_UNKNOWN_ERROR,
 };
+
+typedef struct mlp_layer_size_data mlp_layer_size_data_t;
+typedef struct mlp_model mlp_model_t;
+typedef struct mlp_backward_buffer mlp_backward_buffer_t;
+typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
+typedef struct mlp_msgd_buffer mlp_msgd_buffer_t;
+typedef enum mlp_status mlp_status_t;
 
 // create a mlp without parameter initialisation.
 // please init before using it.
