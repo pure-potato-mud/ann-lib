@@ -71,7 +71,7 @@ void setUp(void) {
   backward_buffer = NULL;
   gradient_buffer = NULL;
   msgd_buffer = NULL;
-  status = -1;
+  status = MLP_STATUS_UNKNOWN_ERROR;
 }
 
 void tearDown(void) {

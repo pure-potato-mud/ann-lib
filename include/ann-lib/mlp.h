@@ -18,7 +18,7 @@ enum mlp_status {
   MLP_STATUS_INVALID_LAYER,
   MLP_STATUS_INVALID_STATE,
   MLP_STATUS_INVALID_HARDCODE,
-  MLP_STATUS_UNKNOWN_ERROR,
+  MLP_STATUS_UNKNOWN_ERROR = -1,
 };
 
 typedef struct mlp_layer_size_data mlp_layer_size_data_t;
