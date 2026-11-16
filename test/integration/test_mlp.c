@@ -11,7 +11,7 @@ extern float momentum;
 extern float one(void);
 extern float neg_half(void);
 extern float leaky_relu(float value);
-extern float (*activation_funcs[3U])(float);
+extern mlp_activation_t *activation_funcs[3U];
 extern int test_mlp_get_gradients(size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
 

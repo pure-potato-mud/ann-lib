@@ -39,10 +39,10 @@ struct mlp_model {
   struct mlp_layer_metadata layer_metadata;
   struct mlp_layer_data layer_data;
   float learning_rate;
-  float **buffers;                       // compute buffer(2)
-  float **weight_layers;                 // weights(`N-1`)
-  float **bias_layers;                   // bias (`N-1`)
-  float (**activation_funcs_ref)(float); // activation functions(`N-1`)
+  float **buffers;                              // compute buffer(2)
+  float **weight_layers;                        // weights(`N-1`)
+  float **bias_layers;                          // bias (`N-1`)
+  struct mlp_activation **activation_funcs_ref; // activation functions(`N-1`)
 };
 
 struct mlp_backward_buffer {

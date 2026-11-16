@@ -602,13 +602,12 @@ enum mlp_status mlp_set_learning_rate(struct mlp_model *model,
   return MLP_STATUS_SUCCESS;
 }
 
-enum mlp_status
-mlp_set_activation_fns_ref(struct mlp_model *model,
-                           float (**activation_fns_ref)(float)) {
-  if (model == NULL || activation_fns_ref == NULL) {
+enum mlp_status mlp_set_activation_fns_ref(struct mlp_model *model,
+                                           mlp_activation_t **func_refs) {
+  if (model == NULL || func_refs == NULL) {
     return MLP_STATUS_INVALID_ARGUMENT;
   }
-  model->activation_funcs_ref = activation_fns_ref;
+  model->activation_funcs_ref = func_refs;
   return MLP_STATUS_SUCCESS;
 }
 
@@ -711,7 +710,7 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
   float **const buffers = model->buffers;
   float **const biases = model->bias_layers;
   float **const weights = model->weight_layers;
-  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
+  struct mlp_activation **activation_funcs_ref = model->activation_funcs_ref;
   if (layer_sizes == NULL || buffers == NULL || biases == NULL ||
       weights == NULL || activation_funcs_ref == NULL) {
     return MLP_STATUS_INVALID_FIELD;
@@ -758,7 +757,7 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
     next_layer = buffers[(i + 1U) % 2U];
     weight = weights[i];
     bias = biases[i];
-    activation_function = activation_funcs_ref[i];
+    activation_function = activation_funcs_ref[i]->general;
 
     if (current_layer == NULL || next_layer == NULL || weight == NULL ||
         bias == NULL || activation_function == NULL) {
@@ -818,7 +817,7 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
   float **const weight_gradient_layers = gradient_total->weight_gradient_layers;
   float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
-  float (**activation_funcs_ref)(float) = model->activation_funcs_ref;
+  struct mlp_activation **activation_funcs_ref = model->activation_funcs_ref;
   if (layer_sizes == NULL || compute_buffer == NULL || layers == NULL ||
       raw_output_layers == NULL || weight_gradient_layers == NULL ||
       bias_gradient_layers == NULL || weight_layers == NULL ||
@@ -838,7 +837,8 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
   float *layer = NULL, *output_layer = NULL, *current_backward_buffer = NULL,
         *last_backward_buffer = NULL, *weight_gradient_layer = NULL,
         *bias_gradient_layer = NULL, *weights = NULL;
-  float (*activation_function)(float) = NULL;
+  float (*activation_function)(float) = NULL,
+        (*d_activation_function)(float) = NULL;
   for (i = last_layer_idx; i > 0U;) {
     --i;
 
@@ -852,11 +852,13 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
     bias_gradient_layer = bias_gradient_layers[i];
     output_layer = raw_output_layers[i];
     weights = weight_layers[i];
-    activation_function = activation_funcs_ref[i];
+    activation_function = activation_funcs_ref[i]->general;
+    d_activation_function = activation_funcs_ref[i]->derivative;
     if (layer == NULL || current_backward_buffer == NULL ||
         last_backward_buffer == NULL || weight_gradient_layer == NULL ||
         bias_gradient_layer == NULL || output_layer == NULL ||
-        weights == NULL || activation_function == NULL) {
+        weights == NULL || activation_function == NULL ||
+        d_activation_function == NULL) {
       return MLP_STATUS_INVALID_LAYER;
     }
 
@@ -868,10 +870,7 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
       // n is for any part, there are weight(w), input(x) and bias(b).
 
       // = dL/da * da/dz
-      current_backward_buffer[j] *=
-          (activation_function(output_layer[j] + 4.76837e-7f) -
-           activation_function(output_layer[j] - 4.76837e-7f)) /
-          9.53674e-7f;
+      current_backward_buffer[j] *= d_activation_function(output_layer[j]);
 
       j_idx = j * back_layer_size;
       for (k = 0U; k < back_layer_size; ++k) {

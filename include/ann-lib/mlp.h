@@ -8,6 +8,11 @@ struct mlp_layer_size_data {
   size_t *layer_sizes_ref;
 };
 
+struct mlp_activation {
+  float (*general)(float);
+  float (*derivative)(float);
+};
+
 enum mlp_status {
   MLP_STATUS_SUCCESS = 0,
   MLP_STATUS_INVALID_ARGUMENT,
@@ -22,6 +27,7 @@ enum mlp_status {
 };
 
 typedef struct mlp_layer_size_data mlp_layer_size_data_t;
+typedef struct mlp_activation mlp_activation_t;
 typedef struct mlp_model mlp_model_t;
 typedef struct mlp_backward_buffer mlp_backward_buffer_t;
 typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
@@ -79,7 +85,7 @@ mlp_status_t mlp_set_learning_rate(mlp_model_t *model, float learning_rate);
 // activation_fns_ref will keep and store in mlp. DO NOT free nor edit
 // activation_fns_ref before mlp been free.
 mlp_status_t mlp_set_activation_fns_ref(mlp_model_t *model,
-                                        float (**activation_fns_ref)(float));
+                                        mlp_activation_t **func_refs);
 
 // fill all bias with a value.
 // MLP and it's biases cannot be NULL.

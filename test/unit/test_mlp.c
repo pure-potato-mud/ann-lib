@@ -13,7 +13,7 @@ extern float momentum;
 extern float one(void);
 extern float neg_half(void);
 extern float leaky_relu(float value);
-extern float (*activation_funcs[3U])(float);
+extern mlp_activation_t *activation_funcs[3U];
 extern int test_mlp_get_gradients(size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
 
@@ -308,7 +308,6 @@ void test_mlp_set_learning_rate_null_model(void) {
 }
 
 void test_mlp_set_activation_fns_ref(void) {
-  float (*activation_funcs[3])(float) = {leaky_relu, leaky_relu, leaky_relu};
   model = mlp_create_model(&size_data, &status);
   TEST_ASSERT_NOT_NULL(model);
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, status);
@@ -320,8 +319,6 @@ void test_mlp_set_activation_fns_ref(void) {
 }
 
 void test_mlp_set_activation_fns_ref_null_model(void) {
-  float (*activation_funcs[3])(float) = {leaky_relu, leaky_relu, leaky_relu};
-
   TEST_ASSERT_EQUAL(MLP_STATUS_INVALID_ARGUMENT,
                     mlp_set_activation_fns_ref(NULL, activation_funcs));
 }
