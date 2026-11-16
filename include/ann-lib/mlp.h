@@ -3,16 +3,14 @@
 
 #include <stddef.h>
 
-typedef struct mlp_layer_size_data mlp_layer_size_data_t;
-typedef struct mlp_model mlp_model_t;
-typedef struct mlp_backward_buffer mlp_backward_buffer_t;
-typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
-typedef struct mlp_msgd_buffer mlp_msgd_buffer_t;
-typedef enum mlp_status mlp_status_t;
-
 struct mlp_layer_size_data {
   size_t layer_size_count;
   size_t *layer_sizes_ref;
+};
+
+struct mlp_activation {
+  float (*general)(float);
+  float (*derivative)(float);
 };
 
 enum mlp_status {
@@ -25,10 +23,19 @@ enum mlp_status {
   MLP_STATUS_INVALID_LAYER,
   MLP_STATUS_INVALID_STATE,
   MLP_STATUS_INVALID_HARDCODE,
-  MLP_STATUS_UNKNOWN_ERROR,
+  MLP_STATUS_UNKNOWN_ERROR = -1,
 };
 
-// create a mlp.
+typedef struct mlp_layer_size_data mlp_layer_size_data_t;
+typedef struct mlp_activation mlp_activation_t;
+typedef struct mlp_model mlp_model_t;
+typedef struct mlp_backward_buffer mlp_backward_buffer_t;
+typedef struct mlp_gradient_buffer mlp_gradient_buffer_t;
+typedef struct mlp_msgd_buffer mlp_msgd_buffer_t;
+typedef enum mlp_status mlp_status_t;
+
+// create a mlp without parameter initialisation.
+// please init before using it.
 // layer_sizes_ref will keep and store in mlp. DO NOT free nor edit
 // layer_sizes_ref before mlp been free.
 // layer_sizes_ref cannot be NULL and have no zero in it.
@@ -78,15 +85,15 @@ mlp_status_t mlp_set_learning_rate(mlp_model_t *model, float learning_rate);
 // activation_fns_ref will keep and store in mlp. DO NOT free nor edit
 // activation_fns_ref before mlp been free.
 mlp_status_t mlp_set_activation_fns_ref(mlp_model_t *model,
-                                        float (**activation_fns_ref)(float));
+                                        mlp_activation_t **func_refs);
 
 // fill all bias with a value.
 // MLP and it's biases cannot be NULL.
-mlp_status_t mlp_fill_biases(mlp_model_t *model, float value);
+mlp_status_t mlp_fill_biases(mlp_model_t *model, float (*func)(void));
 
 // fill all weights with a value.
 // MLP and it's weights field cannot be NULL.
-mlp_status_t mlp_fill_weights(mlp_model_t *model, float value);
+mlp_status_t mlp_fill_weights(mlp_model_t *model, float (*func)(void));
 
 // fill all element in gradient buffer to zero.
 mlp_status_t mlp_clear_gradient_buffer(mlp_gradient_buffer_t *buffer);
