@@ -27,3 +27,5 @@ target_link_libraries(integration_test_mlp
 
 add_test(NAME integration_test_mlp COMMAND integration_test_mlp)
 set_tests_properties(integration_test_mlp PROPERTIES TIMEOUT 1)
+
+add_subdirectory(application)
