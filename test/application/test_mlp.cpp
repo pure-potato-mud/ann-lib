@@ -97,7 +97,8 @@ static mlp_status_t on_integration(const size_t sample_idx,
                                   pack.gradient)) {
     return MLP_STATUS_INVALID_ARGUMENT;
   }
-  status = mlp_backward(model, backward_buffer, pack.gradient, gradient_buffer);
+  status = mlp_backward(model, backward_buffer, pack.gradient, gradient_buffer,
+                        nullptr);
   if (status != MLP_STATUS_SUCCESS) { return status; }
   return MLP_STATUS_SUCCESS;
 }

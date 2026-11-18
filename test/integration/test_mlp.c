@@ -66,7 +66,7 @@ void test_mlp_propagation_and_sgd_update(void) {
                     test_mlp_get_gradients(2U, answer, output, gradients));
   TEST_ASSERT_EQUAL(
       MLP_STATUS_SUCCESS,
-      mlp_backward(model, backward_buffer, gradients, gradient_buffer));
+      mlp_backward(model, backward_buffer, gradients, gradient_buffer, NULL));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_update_parameters_sgd(model, gradient_buffer));
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -110,7 +110,7 @@ void test_mlp_propagation_and_msgd_update(void) {
                     mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_EQUAL(
       MLP_STATUS_SUCCESS,
-      mlp_backward(model, backward_buffer, gradients, gradient_buffer));
+      mlp_backward(model, backward_buffer, gradients, gradient_buffer, NULL));
   TEST_ASSERT_EQUAL(
       MLP_STATUS_SUCCESS,
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));
@@ -124,7 +124,7 @@ void test_mlp_propagation_and_msgd_update(void) {
                     mlp_clear_gradient_buffer(gradient_buffer));
   TEST_ASSERT_EQUAL(
       MLP_STATUS_SUCCESS,
-      mlp_backward(model, backward_buffer, gradients, gradient_buffer));
+      mlp_backward(model, backward_buffer, gradients, gradient_buffer, NULL));
   TEST_ASSERT_EQUAL(
       MLP_STATUS_SUCCESS,
       mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer));

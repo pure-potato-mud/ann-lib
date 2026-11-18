@@ -795,7 +795,8 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
 enum mlp_status mlp_backward(const struct mlp_model *model,
                              const struct mlp_backward_buffer *backward_buffer,
                              const float *const gradients,
-                             struct mlp_gradient_buffer *gradient_total) {
+                             struct mlp_gradient_buffer *gradient_total,
+                             float *gradient_output) {
   if (model == NULL || backward_buffer == NULL || gradient_total == NULL ||
       gradients == NULL) {
     return MLP_STATUS_INVALID_ARGUMENT;
@@ -888,6 +889,11 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
 
       // dz/db = 1
       bias_gradient_layer[j] += current_backward_buffer[j];
+    }
+    if (i == 0 && gradient_output != NULL) {
+      for (j = 0; j < back_layer_size; ++j) {
+        gradient_output[j] = last_backward_buffer[j];
+      }
     }
   }
 
