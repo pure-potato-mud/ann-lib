@@ -21,6 +21,10 @@ static struct mlp_model *model;
 static struct mlp_backward_buffer *backward_buffer;
 static struct mlp_gradient_buffer *gradient_buffer;
 static mlp_msgd_buffer_t *msgd_buffer;
+static struct mlp_model *model_2;
+static struct mlp_backward_buffer *backward_buffer_2;
+static struct mlp_gradient_buffer *gradient_buffer_2;
+static mlp_msgd_buffer_t *msgd_buffer_2;
 static enum mlp_status status;
 
 float mlp_rand() { return (float)rng() / UINT32_MAX - 0.5f; }
@@ -43,14 +47,27 @@ struct TrainingPack {
   float *gradient;
 };
 
-struct TrainingEvents {
-  mlp_status_t (*on_batch_begin)();
-  mlp_status_t (*on_integration)(const size_t, TrainingPack &);
-  mlp_status_t (*on_update)(TrainingPack &);
+struct TrainingPackEncoderDecoder {
+  const size_t io_size;
+  const float scalar;
+  const float *data_set;
+  float *input;
+  float *middle;
+  float *output;
+  float *answer;
+  float *gradient;
+  float *middle_gradient;
 };
 
-mlp_status_t train(const TrainingConfig &config, const TrainingEvents &events,
-                   TrainingPack &context) {
+template <typename T> struct TrainingEvents {
+  mlp_status_t (*on_batch_begin)();
+  mlp_status_t (*on_integration)(const size_t, T &);
+  mlp_status_t (*on_update)(T &);
+};
+
+template <typename T>
+mlp_status_t train(const TrainingConfig &config,
+                   const TrainingEvents<T> &events, T &context) {
   mlp_status_t status = MLP_STATUS_UNKNOWN_ERROR;
   size_t set_size = config.set_size, batch_size = config.batch_size,
          epoch_size = config.epoch_size;
@@ -119,6 +136,55 @@ static mlp_status_t on_update_msgd(TrainingPack &pack) {
   return MLP_STATUS_SUCCESS;
 }
 
+static mlp_status_t on_batch_begin_auto_encoder() {
+  status = mlp_clear_gradient_buffer(gradient_buffer);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status = mlp_clear_gradient_buffer(gradient_buffer_2);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  return MLP_STATUS_SUCCESS;
+}
+
+static mlp_status_t
+on_integration_auto_encoder(const size_t sample_idx,
+                            TrainingPackEncoderDecoder &pack) {
+  const size_t io_size = pack.io_size;
+  for (size_t i = 0U; i < io_size; ++i) {
+    pack.input[i] = pack.data_set[sample_idx * io_size + i];
+  }
+  for (size_t i = 0U; i < io_size; ++i) {
+    pack.answer[i] = pack.data_set[sample_idx * io_size + i];
+  }
+  status = mlp_forward(model, pack.input, pack.middle, backward_buffer);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status = mlp_forward(model_2, pack.middle, pack.output, backward_buffer_2);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  if (1 == test_mlp_get_gradients(io_size, pack.answer, pack.output,
+                                  pack.gradient)) {
+    return MLP_STATUS_INVALID_ARGUMENT;
+  }
+  status = mlp_backward(model_2, backward_buffer_2, pack.gradient,
+                        gradient_buffer_2, pack.middle_gradient);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status = mlp_backward(model, backward_buffer, pack.middle_gradient,
+                        gradient_buffer, nullptr);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  return MLP_STATUS_SUCCESS;
+}
+
+static mlp_status_t
+on_update_msgd_auto_encoder(TrainingPackEncoderDecoder &pack) {
+  status = mlp_scale_gradients(gradient_buffer, pack.scalar);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status = mlp_scale_gradients(gradient_buffer_2, pack.scalar);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status = mlp_update_parameters_msgd(model, msgd_buffer, gradient_buffer);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  status =
+      mlp_update_parameters_msgd(model_2, msgd_buffer_2, gradient_buffer_2);
+  if (status != MLP_STATUS_SUCCESS) { return status; }
+  return MLP_STATUS_SUCCESS;
+}
+
 void setUp() {
   rng.seed(4067023588);
   model = nullptr;
@@ -178,7 +244,8 @@ void test_mlp_xor() {
       input_size, output_size, total_size, scalar,   (float *)training_set,
       input,      output,      answer,     gradient,
   };
-  TrainingEvents events = {on_batch_begin, on_integration, on_update_sgd};
+  TrainingEvents<TrainingPack> events = {on_batch_begin, on_integration,
+                                         on_update_sgd};
 
   double init_loss = 0.0, tmp_loss;
   for (auto const &sample : training_set) {
@@ -464,7 +531,8 @@ void test_mlp_noisy_regression() {
       input_size, output_size, total_size, scalar,   (float *)training_set,
       input,      output,      answer,     gradient,
   };
-  TrainingEvents events = {on_batch_begin, on_integration, on_update_msgd};
+  TrainingEvents<TrainingPack> events = {on_batch_begin, on_integration,
+                                         on_update_msgd};
 
   double init_loss = 0.0, tmp_loss = 0.0;
   for (auto const &sample : training_set) {
@@ -846,7 +914,8 @@ void test_mlp_spiral_ont_hot() {
       input_size, output_size, total_size, scalar,   (float *)training_set,
       input,      output,      answer,     gradient,
   };
-  TrainingEvents events = {on_batch_begin, on_integration, on_update_msgd};
+  TrainingEvents<TrainingPack> events = {on_batch_begin, on_integration,
+                                         on_update_msgd};
 
   double init_loss = 0.0, tmp_loss = 0.0;
   for (auto const &sample : testing_set) {
@@ -897,12 +966,128 @@ void test_mlp_spiral_ont_hot() {
   TEST_ASSERT_LESS_THAN_FLOAT(init_loss * 0.4, trained_loss);
 }
 
+void test_mlp_auto_encoder() {
+  constexpr size_t training_set_size = 8U;
+  constexpr size_t batch_size = 1U;
+  constexpr size_t layer_size_count = 3U;
+  constexpr size_t io_size = 8U, middle_size = 2U;
+  float input[io_size], middle[middle_size], output[io_size], answer[io_size],
+      gradient[io_size], middle_gradient[middle_size];
+  size_t sizes[layer_size_count] = {io_size, 4U, middle_size};
+  size_t sizes_2[layer_size_count] = {middle_size, 4U, io_size};
+  mlp_layer_size_data_t size_data = {layer_size_count, sizes};
+  mlp_layer_size_data_t size_data_2 = {layer_size_count, sizes_2};
+
+  float training_set[training_set_size][io_size] = {
+      {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      {0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f},
+      {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f},
+  };
+  float scalar = 1.0f / batch_size;
+  TrainingConfig config = {training_set_size, batch_size, 10000};
+  mlp_activation_t *activation_ptr = &activation;
+  mlp_activation_t *activate_fns[layer_size_count] = {
+      activation_ptr, activation_ptr, activation_ptr};
+
+  // allocate
+  model = mlp_create_model(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  backward_buffer = mlp_create_backward_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(backward_buffer);
+  gradient_buffer = mlp_create_gradient_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  model_2 = mlp_create_model(&size_data_2, &status);
+  TEST_ASSERT_NOT_NULL(model);
+  backward_buffer_2 = mlp_create_backward_buffer(&size_data_2, &status);
+  TEST_ASSERT_NOT_NULL(backward_buffer);
+  gradient_buffer_2 = mlp_create_gradient_buffer(&size_data_2, &status);
+  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  msgd_buffer_2 = mlp_create_msgd_buffer(&size_data_2, &status);
+  TEST_ASSERT_NOT_NULL(msgd_buffer);
+
+  // setup
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_learning_rate(model, 0.00390625f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, mlp_rand));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model, mlp_rand));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_activation_fns_ref(model, activate_fns));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_clear_msgd_buffer(msgd_buffer));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_set_momentum(msgd_buffer, 0.98f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_learning_rate(model_2, 0.00390625f));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model_2, mlp_rand));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_biases(model_2, mlp_rand));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                    mlp_set_activation_fns_ref(model_2, activate_fns));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_clear_msgd_buffer(msgd_buffer_2));
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_set_momentum(msgd_buffer_2, 0.98f));
+
+  TrainingPackEncoderDecoder pack = {io_size, scalar,   (float *)training_set,
+                                     input,   middle,   output,
+                                     answer,  gradient, middle_gradient};
+  TrainingEvents<TrainingPackEncoderDecoder> events = {
+      on_batch_begin_auto_encoder, on_integration_auto_encoder,
+      on_update_msgd_auto_encoder};
+  double init_loss = 0.0, tmp_loss = 0.0;
+  for (auto &sample : training_set) {
+    for (size_t i = 0; i < io_size; ++i) {
+      input[i] = sample[i];
+    }
+    for (size_t i = 0; i < io_size; ++i) {
+      answer[i] = sample[i];
+    }
+    TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                      mlp_forward(model, input, middle, nullptr));
+    TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                      mlp_forward(model_2, middle, output, nullptr));
+    for (size_t i = 0; i < io_size; ++i) {
+      tmp_loss = output[i] - answer[i];
+      init_loss += tmp_loss * tmp_loss;
+    }
+  }
+  init_loss = sqrt(init_loss / (io_size * training_set_size));
+
+  // act
+  TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, train(config, events, pack));
+
+  // assert
+  double trained_loss = 0.0;
+  for (auto &sample : training_set) {
+    for (size_t i = 0; i < io_size; ++i) {
+      input[i] = sample[i];
+    }
+    for (size_t i = 0; i < io_size; ++i) {
+      answer[i] = sample[i];
+    }
+    TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                      mlp_forward(model, input, middle, nullptr));
+    TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
+                      mlp_forward(model_2, middle, output, nullptr));
+    for (size_t i = 0; i < io_size; ++i) {
+      tmp_loss = output[i] - answer[i];
+      trained_loss += tmp_loss * tmp_loss;
+    }
+    TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-1, answer, output, io_size);
+  }
+  trained_loss = sqrt(trained_loss / (io_size * training_set_size));
+  TEST_ASSERT_LESS_THAN_FLOAT(init_loss * 0.1, trained_loss);
+}
+
 int main() {
   UNITY_BEGIN();
 
   RUN_TEST(test_mlp_xor);
   RUN_TEST(test_mlp_noisy_regression);
   RUN_TEST(test_mlp_spiral_ont_hot);
+  RUN_TEST(test_mlp_auto_encoder);
 
   return UNITY_END();
 }

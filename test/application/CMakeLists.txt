@@ -10,5 +10,5 @@ target_link_libraries(application_test_mlp
 )
 
 add_test(NAME application_test_mlp COMMAND application_test_mlp)
-set_tests_properties(application_test_mlp PROPERTIES TIMEOUT 2)
+set_tests_properties(application_test_mlp PROPERTIES TIMEOUT 3)
 
