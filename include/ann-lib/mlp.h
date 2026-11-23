@@ -120,7 +120,8 @@ mlp_status_t mlp_forward(mlp_model_t *model, const float *input, float *output,
 mlp_status_t mlp_backward(const mlp_model_t *model,
                           const mlp_backward_buffer_t *backward_buffer,
                           const float *gradients,
-                          mlp_gradient_buffer_t *gradient_total);
+                          mlp_gradient_buffer_t *gradient_total,
+                          float *gradient_output);
 
 mlp_status_t
 mlp_update_parameters_sgd(mlp_model_t *model,
