@@ -71,16 +71,18 @@ mlp_status_t train(const TrainingConfig &config,
   mlp_status_t status = MLP_STATUS_UNKNOWN_ERROR;
   size_t set_size = config.set_size, batch_size = config.batch_size,
          epoch_size = config.epoch_size;
+  if (batch_size == 0) { return MLP_STATUS_INVALID_FIELD; }
   size_t last_batch_size = set_size % batch_size;
   size_t batch_count = set_size / batch_size;
   size_t epoch_idx, batch_idx, i;
   for (epoch_idx = 0; epoch_idx < epoch_size; ++epoch_idx) {
     for (batch_idx = 0; batch_idx <= batch_count; ++batch_idx) {
-      status = events.on_batch_begin();
-      if (status != MLP_STATUS_SUCCESS) { return status; }
       size_t current_batch_size =
           (batch_idx < batch_count ? batch_size : last_batch_size);
       if (current_batch_size == 0) { continue; }
+
+      status = events.on_batch_begin();
+      if (status != MLP_STATUS_SUCCESS) { return status; }
       for (i = 0; i < current_batch_size; ++i) {
         status = events.on_integration((batch_idx * batch_size) + i, context);
         if (status != MLP_STATUS_SUCCESS) { return status; }
