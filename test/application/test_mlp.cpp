@@ -191,6 +191,10 @@ void setUp() {
   backward_buffer = nullptr;
   gradient_buffer = nullptr;
   msgd_buffer = nullptr;
+  model_2 = nullptr;
+  backward_buffer_2 = nullptr;
+  gradient_buffer_2 = nullptr;
+  msgd_buffer_2 = nullptr;
   status = MLP_STATUS_UNKNOWN_ERROR;
 }
 
@@ -199,6 +203,10 @@ void tearDown() {
   mlp_destroy_backward_buffer(backward_buffer);
   mlp_destroy_gradient_buffer(gradient_buffer);
   mlp_destroy_msgd_buffer(msgd_buffer);
+  mlp_destroy_model(model_2);
+  mlp_destroy_backward_buffer(backward_buffer_2);
+  mlp_destroy_gradient_buffer(gradient_buffer_2);
+  mlp_destroy_msgd_buffer(msgd_buffer_2);
 }
 
 void test_mlp_xor() {
@@ -1004,13 +1012,13 @@ void test_mlp_auto_encoder() {
   msgd_buffer = mlp_create_msgd_buffer(&size_data, &status);
   TEST_ASSERT_NOT_NULL(msgd_buffer);
   model_2 = mlp_create_model(&size_data_2, &status);
-  TEST_ASSERT_NOT_NULL(model);
+  TEST_ASSERT_NOT_NULL(model_2);
   backward_buffer_2 = mlp_create_backward_buffer(&size_data_2, &status);
-  TEST_ASSERT_NOT_NULL(backward_buffer);
+  TEST_ASSERT_NOT_NULL(backward_buffer_2);
   gradient_buffer_2 = mlp_create_gradient_buffer(&size_data_2, &status);
-  TEST_ASSERT_NOT_NULL(gradient_buffer);
+  TEST_ASSERT_NOT_NULL(gradient_buffer_2);
   msgd_buffer_2 = mlp_create_msgd_buffer(&size_data_2, &status);
-  TEST_ASSERT_NOT_NULL(msgd_buffer);
+  TEST_ASSERT_NOT_NULL(msgd_buffer_2);
 
   // setup
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
