@@ -2,18 +2,13 @@ cmake_minimum_required(VERSION 3.24)
 
 get_filename_component(proj_name "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 
-project(${proj_name} LANGUAGES C CXX)
+project(${proj_name} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_FLAGS "-Wall -Wextra")
 set(CMAKE_C_FLAGS_DEBUG "-g -O1 -fsanitize=address -fno-omit-frame-pointer")
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -lm")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O1 -fsanitize=address -fno-omit-frame-pointer")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(mlp STATIC
