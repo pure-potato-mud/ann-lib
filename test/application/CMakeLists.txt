@@ -1,7 +1,7 @@
 add_executable(
   application_test_mlp
   test_mlp.cpp
-  ../common/mlp_config.cpp
+  ../common/mlp_config.c
 )
 
 target_link_libraries(application_test_mlp

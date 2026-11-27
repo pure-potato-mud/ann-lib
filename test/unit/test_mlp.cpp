@@ -7,6 +7,7 @@ extern "C" {
 
 #include <internal/mlp.hpp>
 
+extern "C" {
 extern float input[2], answer[2];
 extern std::size_t layer_sizes[3];
 extern const std::size_t layer_size_count;
@@ -19,6 +20,7 @@ extern float leaky_relu(float value);
 extern mlp_activation_t *activation_funcs[3U];
 extern int test_mlp_get_gradients(std::size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
+}
 
 static struct mlp_double_layers *double_layers;
 static struct mlp_model *model;

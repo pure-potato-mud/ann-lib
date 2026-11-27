@@ -10,9 +10,11 @@ extern "C" {
 
 #define PI 3.1415926535897
 
+extern "C" {
 extern mlp_activation_t activation;
 extern int test_mlp_get_gradients(std::size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
+}
 
 static std::mt19937 rng;
 static struct mlp_model *model;
