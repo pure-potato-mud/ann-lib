@@ -1,6 +1,8 @@
+extern "C" {
 #include <unity.h>
+}
 
-#include <ann-lib/mlp.h>
+#include <ann-lib/mlp.hpp>
 
 extern float input[2], answer[2];
 extern size_t layer_sizes[3];
@@ -8,8 +10,8 @@ extern const size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
-extern float one(void);
-extern float neg_half(void);
+extern float one();
+extern float neg_half();
 extern float leaky_relu(float value);
 extern mlp_activation_t *activation_funcs[3U];
 extern int test_mlp_get_gradients(size_t size, const float *expect,
@@ -23,22 +25,22 @@ static enum mlp_status status;
 
 static float output[2], gradients[2];
 
-void setUp(void) {
-  model = NULL;
-  backward_buffer = NULL;
-  gradient_buffer = NULL;
-  msgd_buffer = NULL;
+void setUp() {
+  model = nullptr;
+  backward_buffer = nullptr;
+  gradient_buffer = nullptr;
+  msgd_buffer = nullptr;
   status = MLP_STATUS_UNKNOWN_ERROR;
 }
 
-void tearDown(void) {
+void tearDown() {
   mlp_destroy_model(model);
   mlp_destroy_backward_buffer(backward_buffer);
   mlp_destroy_gradient_buffer(gradient_buffer);
   mlp_destroy_msgd_buffer(msgd_buffer);
 }
 
-void test_mlp_propagation_and_sgd_update(void) {
+void test_mlp_propagation_and_sgd_update() {
   float expect_output_1[2] = {5.5f, 5.5f},
         expect_output_2[2] = {-3.153228e-2f, -3.209686e-2f};
 
@@ -74,7 +76,7 @@ void test_mlp_propagation_and_sgd_update(void) {
   TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-8, expect_output_2, output, 2U);
 }
 
-void test_mlp_propagation_and_msgd_update(void) {
+void test_mlp_propagation_and_msgd_update() {
 
   float expect_output_1[2] = {5.5f, 5.5f},
         expect_output_2[2] = {-3.153228e-2f, -3.209686e-2f},
@@ -134,7 +136,7 @@ void test_mlp_propagation_and_msgd_update(void) {
   TEST_ASSERT_FLOAT_ARRAY_WITHIN(1e-8, expect_output_3, output, 2U);
 }
 
-int main(void) {
+int main() {
   UNITY_BEGIN();
 
   RUN_TEST(test_mlp_propagation_and_sgd_update);

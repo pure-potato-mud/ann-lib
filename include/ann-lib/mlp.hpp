@@ -1,7 +1,7 @@
 #ifndef ANN_LIB_MLP_H_
 #define ANN_LIB_MLP_H_
 
-#include <stddef.h>
+#include <cstddef>
 
 struct mlp_layer_size_data {
   size_t layer_size_count;

@@ -1,18 +1,18 @@
-#include <stddef.h>
+#include <cstddef>
 
-#include <ann-lib/mlp.h>
+#include <ann-lib/mlp.hpp>
 
 float input[2] = {0.5f, 2.0f}, answer[2] = {1.0f, 0.0f};
 
 size_t layer_sizes[3] = {2U, 3U, 2U};
-const size_t layer_size_count = 3U;
+extern const size_t layer_size_count = 3U;
 struct mlp_layer_size_data size_data = {layer_size_count, layer_sizes};
 
 float learning_rate = 0.125f;
 float momentum = 0.875f;
 
-float one(void) { return 1.0f; }
-float neg_half(void) { return -0.5f; }
+float one() { return 1.0f; }
+float neg_half() { return -0.5f; }
 float leaky_relu(float value) { return (value > 0) ? value : value * 0.03125f; }
 float d_leaky_relu(float value) { return (value > 0) ? 1.0f : 0.03125f; }
 mlp_activation_t activation = {leaky_relu, d_leaky_relu};
@@ -20,7 +20,7 @@ mlp_activation_t *activation_funcs[2U] = {&activation, &activation};
 
 int test_mlp_get_gradients(size_t size, const float *expect,
                            const float *actual, float *gradients_output) {
-  if (expect == NULL || actual == NULL || gradients_output == NULL) {
+  if (expect == nullptr || actual == nullptr || gradients_output == nullptr) {
     return 1;
   }
   size_t i;

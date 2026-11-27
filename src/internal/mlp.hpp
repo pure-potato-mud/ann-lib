@@ -1,10 +1,9 @@
 #ifndef INTERNAL_MLP_H_
 #define INTERNAL_MLP_H_
 
-#include <stdbool.h>
-#include <stddef.h>
+#include <cstddef>
 
-#include <ann-lib/mlp.h>
+#include <ann-lib/mlp.hpp>
 
 struct mlp_field_offsets {
   size_t field_offset_count;

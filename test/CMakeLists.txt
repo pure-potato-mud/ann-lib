@@ -1,6 +1,6 @@
 add_executable(unit_test_mlp
-  unit/test_mlp.c
-  common/mlp_config.c
+  unit/test_mlp.cpp
+  common/mlp_config.cpp
 )
 
 target_link_libraries(unit_test_mlp
@@ -16,8 +16,8 @@ add_test(NAME unit_test_mlp COMMAND unit_test_mlp)
 set_tests_properties(unit_test_mlp PROPERTIES TIMEOUT 1)
 
 add_executable(integration_test_mlp
-  integration/test_mlp.c
-  common/mlp_config.c
+  integration/test_mlp.cpp
+  common/mlp_config.cpp
 )
 
 target_link_libraries(integration_test_mlp
