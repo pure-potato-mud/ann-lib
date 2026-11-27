@@ -1,6 +1,6 @@
 #include <cstddef>
 
-#include <ann-lib/mlp.hpp>
+#include <ann-lib/mlp.h>
 
 float input[2] = {0.5f, 2.0f}, answer[2] = {1.0f, 0.0f};
 

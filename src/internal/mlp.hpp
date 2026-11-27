@@ -1,9 +1,9 @@
-#ifndef INTERNAL_MLP_H_
-#define INTERNAL_MLP_H_
+#ifndef INTERNAL_MLP_HPP_
+#define INTERNAL_MLP_HPP_
 
 #include <cstddef>
 
-#include <ann-lib/mlp.hpp>
+#include <ann-lib/mlp.h>
 
 struct mlp_field_offsets {
   size_t field_offset_count;
@@ -98,4 +98,4 @@ int mlp_msgd_buffer_get_current_size(size_t i, const size_t *layer_sizes,
                                      const size_t *field_offsets,
                                      size_t *current_size);
 
-#endif /* INTERNAL_MLP_H_ */
+#endif /* INTERNAL_MLP_HPP_ */

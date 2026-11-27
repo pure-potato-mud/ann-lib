@@ -2,7 +2,7 @@ extern "C" {
 #include <unity.h>
 }
 
-#include <ann-lib/mlp.hpp>
+#include <ann-lib/mlp.h>
 
 extern float input[2], answer[2];
 extern size_t layer_sizes[3];

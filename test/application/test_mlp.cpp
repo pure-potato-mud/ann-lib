@@ -6,7 +6,7 @@ extern "C" {
 #include <unity.h>
 }
 
-#include <ann-lib/mlp.hpp>
+#include <ann-lib/mlp.h>
 
 #define PI 3.1415926535897
 
