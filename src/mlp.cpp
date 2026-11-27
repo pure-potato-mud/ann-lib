@@ -6,7 +6,7 @@
 void mlp_destroy_field_offsets(struct mlp_field_offsets *offsets) {
   if (offsets == nullptr) { return; }
 
-  size_t *data = offsets->field_offsets;
+  std::size_t *data = offsets->field_offsets;
   ::delete offsets;
   if (data == nullptr) { return; }
 
@@ -14,8 +14,8 @@ void mlp_destroy_field_offsets(struct mlp_field_offsets *offsets) {
 }
 
 void cleanup_mlp_create_double_layers(
-    struct mlp_field_offsets *field_offsets_obj, size_t const *addr_offsets,
-    float **layers, float const *elements) {
+    struct mlp_field_offsets *field_offsets_obj,
+    std::size_t const *addr_offsets, float **layers, float const *elements) {
   mlp_destroy_field_offsets(field_offsets_obj);
   ::delete[] (addr_offsets);
   ::delete[] (elements);
@@ -29,23 +29,24 @@ struct mlp_double_layers *mlp_create_double_layers(
     if (status != nullptr) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return nullptr;
   }
-  struct mlp_field_offsets *(*const get_field_offsets)(size_t) =
+  struct mlp_field_offsets *(*const get_field_offsets)(std::size_t) =
       funcs->get_field_offsets;
-  int (*const get_current_size)(size_t, const size_t *, const size_t *,
-                                size_t *) = funcs->get_current_size;
+  int (*const get_current_size)(std::size_t, const std::size_t *,
+                                const std::size_t *, std::size_t *) =
+      funcs->get_current_size;
   if (get_field_offsets == nullptr || get_current_size == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_INVALID_HARDCODE; }
     return nullptr;
   }
-  const size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
-  const size_t layer_size_count = layer_size->layer_size_count;
+  const std::size_t *const layer_sizes_ref = layer_size->layer_sizes_ref;
+  const std::size_t layer_size_count = layer_size->layer_size_count;
   if (layer_sizes_ref == nullptr || layer_size_count < 2U) {
     if (status != nullptr) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     return nullptr;
   }
 
   struct mlp_field_offsets *field_offsets_obj = nullptr;
-  size_t *addr_offsets = nullptr;
+  std::size_t *addr_offsets = nullptr;
   float **layers = nullptr;
   float *elements = nullptr;
 
@@ -56,8 +57,8 @@ struct mlp_double_layers *mlp_create_double_layers(
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     return nullptr;
   }
-  const size_t field_offset_count = field_offsets_obj->field_offset_count;
-  const size_t *field_offsets = field_offsets_obj->field_offsets;
+  const std::size_t field_offset_count = field_offsets_obj->field_offset_count;
+  const std::size_t *field_offsets = field_offsets_obj->field_offsets;
   if (field_offset_count < 1U) {
     if (status != nullptr) { *status = MLP_STATUS_INVALID_HARDCODE; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -70,15 +71,15 @@ struct mlp_double_layers *mlp_create_double_layers(
                                      elements);
     return nullptr;
   }
-  const size_t layer_full_size = field_offsets[field_offset_count - 1U];
-  if (SIZE_MAX / sizeof(size_t) < layer_full_size ||
+  const std::size_t layer_full_size = field_offsets[field_offset_count - 1U];
+  if (SIZE_MAX / sizeof(std::size_t) < layer_full_size ||
       SIZE_MAX / sizeof(float *) < layer_full_size) {
     if (status != nullptr) { *status = MLP_STATUS_INT_OVERFLOW; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
                                      elements);
     return nullptr;
   }
-  addr_offsets = ::new size_t[layer_full_size]();
+  addr_offsets = ::new std::size_t[layer_full_size]();
   if (addr_offsets == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -96,7 +97,7 @@ struct mlp_double_layers *mlp_create_double_layers(
   // compute addr offsets
   // using layer_full_size and layer_offsets
   // optional: calculate max_layer_size, and adjust offset_sum
-  size_t i, offset_sum = 0, current_size;
+  std::size_t i, offset_sum = 0, current_size;
   int result;
   for (i = 0; i < layer_size_count; ++i) {
     if (layer_sizes_ref[i] == 0U) {
@@ -129,7 +130,7 @@ struct mlp_double_layers *mlp_create_double_layers(
     offset_sum += current_size;
   }
 
-  size_t max_layer_size = layer_sizes_ref[0U];
+  std::size_t max_layer_size = layer_sizes_ref[0U];
   if (max_layer_size == 0) {
     if (status != nullptr) { *status = MLP_STATUS_INVALID_ARGUMENT; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -213,15 +214,16 @@ void mlp_destroy_double_layers(struct mlp_double_layers *obj) {
   ::delete obj;
 }
 
-struct mlp_field_offsets *mlp_model_get_field_offsets(size_t layer_size_count) {
+struct mlp_field_offsets *
+mlp_model_get_field_offsets(std::size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count) { return nullptr; }
-  const size_t layer_full_size = layer_size_count * 2U;
+  const std::size_t layer_full_size = layer_size_count * 2U;
 
-  const size_t data[] = {2U, layer_size_count + 1U, layer_full_size};
-  const size_t data_size = sizeof(data) / sizeof(size_t);
-  auto *copied_data = ::new size_t[data_size]();
+  const std::size_t data[] = {2U, layer_size_count + 1U, layer_full_size};
+  const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
+  auto *copied_data = ::new std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
-  size_t i;
+  std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
@@ -238,12 +240,12 @@ struct mlp_field_offsets *mlp_model_get_field_offsets(size_t layer_size_count) {
   return ret;
 }
 
-int mlp_model_get_current_size(size_t i, const size_t *layer_sizes,
-                               const size_t *field_offsets,
-                               size_t *current_size) {
-  const size_t weight_offset = field_offsets[0U],
-               bias_offset = field_offsets[1U];
-  size_t current_layer_idx, current_neruon_count;
+int mlp_model_get_current_size(std::size_t i, const std::size_t *layer_sizes,
+                               const std::size_t *field_offsets,
+                               std::size_t *current_size) {
+  const std::size_t weight_offset = field_offsets[0U],
+                    bias_offset = field_offsets[1U];
+  std::size_t current_layer_idx, current_neruon_count;
   if (i < weight_offset) {
     *current_size = 0;
   } else if (i < bias_offset) { // offsets for weights
@@ -261,15 +263,15 @@ int mlp_model_get_current_size(size_t i, const size_t *layer_sizes,
 }
 
 struct mlp_field_offsets *
-mlp_backward_buffer_get_field_offsets(size_t layer_size_count) {
+mlp_backward_buffer_get_field_offsets(std::size_t layer_size_count) {
   if ((SIZE_MAX - 1U) / 2U < layer_size_count) { return nullptr; }
-  const size_t layer_full_size = layer_size_count * 2U + 1U;
+  const std::size_t layer_full_size = layer_size_count * 2U + 1U;
 
-  const size_t data[] = {2U, layer_size_count + 2U, layer_full_size};
-  const size_t data_size = sizeof(data) / sizeof(size_t);
-  auto *copied_data = ::new size_t[data_size]();
+  const std::size_t data[] = {2U, layer_size_count + 2U, layer_full_size};
+  const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
+  auto *copied_data = ::new std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
-  size_t i;
+  std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
@@ -286,11 +288,12 @@ mlp_backward_buffer_get_field_offsets(size_t layer_size_count) {
   return ret;
 }
 
-int mlp_backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
-                                         const size_t *field_offsets,
-                                         size_t *current_size) {
-  size_t layer_offset = field_offsets[0U],
-         raw_output_offset = field_offsets[1U];
+int mlp_backward_buffer_get_current_size(std::size_t i,
+                                         const std::size_t *layer_sizes,
+                                         const std::size_t *field_offsets,
+                                         std::size_t *current_size) {
+  std::size_t layer_offset = field_offsets[0U],
+              raw_output_offset = field_offsets[1U];
   if (i < layer_offset) {
     *current_size = 0;
   } else if (i < raw_output_offset) {
@@ -302,15 +305,15 @@ int mlp_backward_buffer_get_current_size(size_t i, const size_t *layer_sizes,
 }
 
 struct mlp_field_offsets *
-mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
+mlp_gradient_buffer_get_field_offsets(std::size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count - 1U) { return nullptr; }
-  const size_t layer_full_size = 2U * layer_size_count - 2U;
+  const std::size_t layer_full_size = 2U * layer_size_count - 2U;
 
-  const size_t data[] = {layer_size_count - 1U, layer_full_size};
-  const size_t data_size = sizeof(data) / sizeof(size_t);
-  auto *copied_data = ::new size_t[data_size]();
+  const std::size_t data[] = {layer_size_count - 1U, layer_full_size};
+  const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
+  auto *copied_data = ::new std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
-  size_t i;
+  std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
@@ -327,11 +330,12 @@ mlp_gradient_buffer_get_field_offsets(size_t layer_size_count) {
   return ret;
 }
 
-int mlp_gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
-                                         const size_t *field_offsets,
-                                         size_t *current_size) {
-  const size_t bias_offset = field_offsets[0U];
-  size_t current_layer_idx, current_neruon_count;
+int mlp_gradient_buffer_get_current_size(std::size_t i,
+                                         const std::size_t *layer_sizes,
+                                         const std::size_t *field_offsets,
+                                         std::size_t *current_size) {
+  const std::size_t bias_offset = field_offsets[0U];
+  std::size_t current_layer_idx, current_neruon_count;
   if (i < bias_offset) { // offsets for weights
     current_layer_idx = i + 1U;
     current_neruon_count = layer_sizes[current_layer_idx];
@@ -347,15 +351,15 @@ int mlp_gradient_buffer_get_current_size(size_t i, const size_t *layer_sizes,
 }
 
 struct mlp_field_offsets *
-mlp_msgd_buffer_get_field_offsets(size_t layer_size_count) {
+mlp_msgd_buffer_get_field_offsets(std::size_t layer_size_count) {
   if (SIZE_MAX / 2U < layer_size_count - 1U) { return nullptr; }
-  const size_t layer_full_size = 2U * layer_size_count - 2U;
+  const std::size_t layer_full_size = 2U * layer_size_count - 2U;
 
-  const size_t data[] = {layer_size_count - 1U, layer_full_size};
-  const size_t data_size = sizeof(data) / sizeof(size_t);
-  auto *copied_data = ::new size_t[data_size];
+  const std::size_t data[] = {layer_size_count - 1U, layer_full_size};
+  const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
+  auto *copied_data = ::new std::size_t[data_size];
   if (copied_data == nullptr) { return nullptr; }
-  size_t i;
+  std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
@@ -372,11 +376,12 @@ mlp_msgd_buffer_get_field_offsets(size_t layer_size_count) {
   return ret;
 }
 
-int mlp_msgd_buffer_get_current_size(size_t i, const size_t *layer_sizes,
-                                     const size_t *field_offsets,
-                                     size_t *current_size) {
-  const size_t bias_offset = field_offsets[0U];
-  size_t current_layer_idx, current_neruon_count;
+int mlp_msgd_buffer_get_current_size(std::size_t i,
+                                     const std::size_t *layer_sizes,
+                                     const std::size_t *field_offsets,
+                                     std::size_t *current_size) {
+  const std::size_t bias_offset = field_offsets[0U];
+  std::size_t current_layer_idx, current_neruon_count;
   if (i < bias_offset) { // offsets for weights
     current_layer_idx = i + 1U;
     current_neruon_count = layer_sizes[current_layer_idx];
@@ -409,7 +414,7 @@ bool is_metadata_not_same(const struct mlp_layer_metadata *a,
     return true;
   }
   if (a->layer_sizes_ref == b->layer_sizes_ref) { return false; }
-  size_t i;
+  std::size_t i;
   for (i = 0U; i < a->layer_size_count; ++i) {
     if (a->layer_sizes_ref[i] != b->layer_sizes_ref[i]) { return true; }
   }
@@ -751,8 +756,8 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
     return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
-  const size_t max_layer_idx = model->layer_metadata.layer_size_count - 1U;
-  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  const std::size_t max_layer_idx = model->layer_metadata.layer_size_count - 1U;
+  const std::size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const buffers = model->buffers;
   float **const biases = model->bias_layers;
   float **const weights = model->weight_layers;
@@ -764,7 +769,7 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
   float *const input_layer = buffers[0U];
   if (input_layer == nullptr) { return MLP_STATUS_INVALID_LAYER; }
 
-  size_t i, j, k;
+  std::size_t i, j, k;
   float **layers = nullptr, **raw_output_layers = nullptr;
   if (local_backward_buffer != nullptr) {
     layers = local_backward_buffer->layers;
@@ -790,8 +795,8 @@ enum mlp_status mlp_forward(struct mlp_model *model, const float *input,
     }
   }
 
-  size_t back_layer_size, front_layer_size;
-  size_t j_idx;
+  std::size_t back_layer_size, front_layer_size;
+  std::size_t j_idx;
   float *current_layer = nullptr, *next_layer = nullptr, *weight = nullptr,
         *bias = nullptr;
   float (*activation_function)(float) = nullptr;
@@ -856,10 +861,10 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
     return MLP_STATUS_TOPOLOGY_MISMATCH;
   }
 
-  const size_t layer_size_count = model->layer_metadata.layer_size_count;
-  const size_t last_layer_idx = layer_size_count - 1U;
+  const std::size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const std::size_t last_layer_idx = layer_size_count - 1U;
 
-  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  const std::size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const compute_buffer = backward_buffer->compute;
   float **const layers = backward_buffer->layers;
   float **const raw_output_layers = backward_buffer->raw_output_layers;
@@ -876,13 +881,13 @@ enum mlp_status mlp_backward(const struct mlp_model *model,
 
   float *final_backward_layer = compute_buffer[last_layer_idx % 2U];
   if (final_backward_layer == nullptr) { return MLP_STATUS_INVALID_LAYER; }
-  size_t i, j, k;
+  std::size_t i, j, k;
   for (i = 0; i < layer_sizes[last_layer_idx]; ++i) {
     final_backward_layer[i] = gradients[i];
   }
 
-  size_t back_layer_size, front_layer_size;
-  size_t j_idx;
+  std::size_t back_layer_size, front_layer_size;
+  std::size_t j_idx;
   float *layer = nullptr, *output_layer = nullptr,
         *current_backward_buffer = nullptr, *last_backward_buffer = nullptr,
         *weight_gradient_layer = nullptr, *bias_gradient_layer = nullptr,
@@ -961,10 +966,10 @@ mlp_update_parameters_sgd(mlp_model_t *model,
   }
 
   const float learn_rate = model->learning_rate;
-  const size_t layer_size_count = model->layer_metadata.layer_size_count;
-  const size_t last_layer_idx = layer_size_count - 1U;
+  const std::size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const std::size_t last_layer_idx = layer_size_count - 1U;
 
-  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  const std::size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const weight_gradient_layers = gradient_total->weight_gradient_layers;
   float **const bias_gradient_layers = gradient_total->bias_gradient_layers;
   float **const weight_layers = model->weight_layers;
@@ -975,9 +980,9 @@ mlp_update_parameters_sgd(mlp_model_t *model,
     return MLP_STATUS_INVALID_FIELD;
   }
 
-  size_t i, j, k;
-  size_t back_layer_size, front_layer_size;
-  size_t j_idx;
+  std::size_t i, j, k;
+  std::size_t back_layer_size, front_layer_size;
+  std::size_t j_idx;
   float *weight_gradient_layer = nullptr, *bias_gradient_layer = nullptr,
         *weights = nullptr, *biases = nullptr;
   for (i = last_layer_idx; i > 0U;) {
@@ -1024,10 +1029,10 @@ mlp_update_parameters_msgd(struct mlp_model *model,
   const float learning_rate = model->learning_rate;
   const float momentum = msgd_buffer->momentum;
 
-  const size_t layer_size_count = model->layer_metadata.layer_size_count;
-  const size_t last_layer_idx = layer_size_count - 1U;
+  const std::size_t layer_size_count = model->layer_metadata.layer_size_count;
+  const std::size_t last_layer_idx = layer_size_count - 1U;
 
-  const size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
+  const std::size_t *layer_sizes = model->layer_metadata.layer_sizes_ref;
   float **const weight_velocity_layers = msgd_buffer->weight_velocity_layers;
   float **const bias_velocity_layers = msgd_buffer->bias_velocity_layers;
   float **const weight_gradient_layers = gradient_total->weight_gradient_layers;
@@ -1041,9 +1046,9 @@ mlp_update_parameters_msgd(struct mlp_model *model,
     return MLP_STATUS_INVALID_FIELD;
   }
 
-  size_t i, j, k;
-  size_t back_layer_size, front_layer_size;
-  size_t j_idx;
+  std::size_t i, j, k;
+  std::size_t back_layer_size, front_layer_size;
+  std::size_t j_idx;
   float *weight_velocities = nullptr, *bias_velocities = nullptr,
         *weight_gradient_layer = nullptr, *bias_gradient_layer = nullptr,
         *weights = nullptr, *biases = nullptr;

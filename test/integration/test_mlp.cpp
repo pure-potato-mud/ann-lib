@@ -5,8 +5,8 @@ extern "C" {
 #include <ann-lib/mlp.h>
 
 extern float input[2], answer[2];
-extern size_t layer_sizes[3];
-extern const size_t layer_size_count;
+extern std::size_t layer_sizes[3];
+extern const std::size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
@@ -14,7 +14,7 @@ extern float one();
 extern float neg_half();
 extern float leaky_relu(float value);
 extern mlp_activation_t *activation_funcs[3U];
-extern int test_mlp_get_gradients(size_t size, const float *expect,
+extern int test_mlp_get_gradients(std::size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
 
 static struct mlp_model *model;

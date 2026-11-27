@@ -7,8 +7,8 @@ extern "C" {
 #include <internal/mlp.hpp>
 
 extern float input[2], answer[2];
-extern size_t layer_sizes[3];
-extern const size_t layer_size_count;
+extern std::size_t layer_sizes[3];
+extern const std::size_t layer_size_count;
 extern struct mlp_layer_size_data size_data;
 extern float learning_rate;
 extern float momentum;
@@ -16,7 +16,7 @@ extern float one();
 extern float neg_half();
 extern float leaky_relu(float value);
 extern mlp_activation_t *activation_funcs[3U];
-extern int test_mlp_get_gradients(size_t size, const float *expect,
+extern int test_mlp_get_gradients(std::size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
 
 static struct mlp_double_layers *double_layers;
@@ -30,20 +30,20 @@ static struct mlp_msgd_buffer *msgd_buffer;
 static enum mlp_status status;
 
 static float output[2], gradients[2], middle[3], middle_gradient[3];
-static size_t layer_sizes_another[4] = {3U, 4U, 1U, 3U};
-static const size_t layer_size_count_another = 4U;
+static std::size_t layer_sizes_another[4] = {3U, 4U, 1U, 3U};
+static const std::size_t layer_size_count_another = 4U;
 static struct mlp_layer_size_data size_data_another = {layer_size_count_another,
                                                        layer_sizes_another};
 static struct mlp_creation_functions creation_functions = {
     mlp_model_get_field_offsets, mlp_model_get_current_size};
 
 static struct mlp_field_offsets *
-test_mlp_get_null_obj(size_t layer_size_count) {
+test_mlp_get_null_obj(std::size_t layer_size_count) {
   (void)layer_size_count;
   return nullptr;
 }
 static struct mlp_field_offsets *
-test_mlp_get_zero_field(size_t layer_size_count) {
+test_mlp_get_zero_field(std::size_t layer_size_count) {
   (void)layer_size_count;
 
   auto *ret = ::new struct mlp_field_offsets();
@@ -56,7 +56,7 @@ test_mlp_get_zero_field(size_t layer_size_count) {
 }
 
 static struct mlp_field_offsets *
-test_mlp_get_null_offsets(size_t layer_size_count) {
+test_mlp_get_null_offsets(std::size_t layer_size_count) {
   (void)layer_size_count;
 
   auto *ret = ::new struct mlp_field_offsets();
@@ -156,7 +156,7 @@ void test_mlp_create_double_layers_null_layer_sizes() {
 }
 
 void test_mlp_create_double_layers_one_layer() {
-  size_t one_layer[1] = {2U};
+  std::size_t one_layer[1] = {2U};
   struct mlp_layer_size_data two_layer_data = {1U, one_layer};
   double_layers = mlp_create_double_layers(true, &creation_functions,
                                            &two_layer_data, &status);
@@ -196,7 +196,7 @@ void test_mlp_create_double_layers_get_null_field_offsets() {
 }
 
 void test_mlp_create_double_layers_zero_neuron() {
-  size_t small_layer_sizes[3] = {1U, 0U, 1U};
+  std::size_t small_layer_sizes[3] = {1U, 0U, 1U};
   struct mlp_layer_size_data test_size_data = {3U, small_layer_sizes};
   double_layers = mlp_create_double_layers(true, &creation_functions,
                                            &test_size_data, &status);
@@ -206,8 +206,8 @@ void test_mlp_create_double_layers_zero_neuron() {
 }
 
 void test_mlp_create_double_layers_large_offset_sum() {
-  size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
-                                 (SIZE_MAX >> 2) / 3};
+  std::size_t large_layer_sizes[3] = {SIZE_MAX >> 1, (SIZE_MAX >> 2) / 3,
+                                      (SIZE_MAX >> 2) / 3};
   struct mlp_layer_size_data test_size_data = {3U, large_layer_sizes};
   double_layers = mlp_create_double_layers(true, &creation_functions,
                                            &test_size_data, &status);
@@ -394,7 +394,7 @@ void test_mlp_fill_weights() {
 
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS, mlp_fill_weights(model, one));
 
-  size_t i;
+  std::size_t i;
   for (i = 0U; i < 6U; ++i) {
     float weight_first_layer = model->weight_layers[0U][i],
           weight_second_layer = model->weight_layers[1U][i];
@@ -812,7 +812,7 @@ void test_mlp_backward_pass_gradient() {
                          20.0f, 10.0f, 10.0f, 10.0f};
   float dump_second[8] = {9.0f, 9.0f, 9.0f, 11.0f, 11.0f, 11.0f, 4.5f, 5.5f};
 
-  size_t layer_sizes_first[2] = {2U, 3U};
+  std::size_t layer_sizes_first[2] = {2U, 3U};
   struct mlp_layer_size_data size_data_first = {2U, layer_sizes_first};
   model = mlp_create_model(&size_data_first, &status);
   TEST_ASSERT_NOT_NULL(model);
@@ -832,7 +832,7 @@ void test_mlp_backward_pass_gradient() {
   TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                     mlp_clear_gradient_buffer(gradient_buffer));
 
-  size_t layer_sizes_second[2] = {3U, 2U};
+  std::size_t layer_sizes_second[2] = {3U, 2U};
   struct mlp_layer_size_data size_data_second = {2U, layer_sizes_second};
   model_2 = mlp_create_model(&size_data_second, &status);
   TEST_ASSERT_NOT_NULL(model_2);
