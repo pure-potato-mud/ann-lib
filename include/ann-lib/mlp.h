@@ -1,6 +1,10 @@
 #ifndef ANN_LIB_MLP_H_
 #define ANN_LIB_MLP_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 
 struct mlp_layer_size_data {
@@ -131,5 +135,9 @@ mlp_update_parameters_sgd(mlp_model_t *model,
 mlp_status_t
 mlp_update_parameters_msgd(mlp_model_t *model, mlp_msgd_buffer_t *msgd_buffer,
                            const mlp_gradient_buffer_t *gradient_total);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ann_lib_mlp_h_ */

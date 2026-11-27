@@ -4,15 +4,15 @@
 
 extern "C" {
 #include <unity.h>
+}
 
 #include <ann-lib/mlp.h>
-}
 
 #define PI 3.1415926535897
 
 extern "C" {
 extern mlp_activation_t activation;
-extern int test_mlp_get_gradients(size_t size, const float *expect,
+extern int test_mlp_get_gradients(std::size_t size, const float *expect,
                                   const float *actual, float *gradients_output);
 }
 
@@ -30,15 +30,15 @@ static enum mlp_status status;
 float mlp_rand() { return (float)rng() / UINT32_MAX - 0.5f; }
 
 struct TrainingConfig {
-  size_t set_size;
-  size_t batch_size;
-  size_t epoch_size;
+  std::size_t set_size;
+  std::size_t batch_size;
+  std::size_t epoch_size;
 };
 
 struct TrainingPack {
-  const size_t input_size;
-  const size_t output_size;
-  const size_t total_size;
+  const std::size_t input_size;
+  const std::size_t output_size;
+  const std::size_t total_size;
   const float scalar;
   const float *data_set;
   float *input;
@@ -48,7 +48,7 @@ struct TrainingPack {
 };
 
 struct TrainingPackEncoderDecoder {
-  const size_t io_size;
+  const std::size_t io_size;
   const float scalar;
   const float *data_set;
   float *input;
@@ -61,7 +61,7 @@ struct TrainingPackEncoderDecoder {
 
 template <typename T> struct TrainingEvents {
   mlp_status_t (*on_batch_begin)();
-  mlp_status_t (*on_integration)(const size_t, T &);
+  mlp_status_t (*on_integration)(const std::size_t, T &);
   mlp_status_t (*on_update)(T &);
 };
 
@@ -69,15 +69,15 @@ template <typename T>
 mlp_status_t train(const TrainingConfig &config,
                    const TrainingEvents<T> &events, T &context) {
   mlp_status_t status = MLP_STATUS_UNKNOWN_ERROR;
-  size_t set_size = config.set_size, batch_size = config.batch_size,
-         epoch_size = config.epoch_size;
+  std::size_t set_size = config.set_size, batch_size = config.batch_size,
+              epoch_size = config.epoch_size;
   if (batch_size == 0) { return MLP_STATUS_INVALID_FIELD; }
-  size_t last_batch_size = set_size % batch_size;
-  size_t batch_count = set_size / batch_size;
-  size_t epoch_idx, batch_idx, i;
+  std::size_t last_batch_size = set_size % batch_size;
+  std::size_t batch_count = set_size / batch_size;
+  std::size_t epoch_idx, batch_idx, i;
   for (epoch_idx = 0; epoch_idx < epoch_size; ++epoch_idx) {
     for (batch_idx = 0; batch_idx <= batch_count; ++batch_idx) {
-      size_t current_batch_size =
+      std::size_t current_batch_size =
           (batch_idx < batch_count ? batch_size : last_batch_size);
       if (current_batch_size == 0) { continue; }
 
@@ -100,14 +100,15 @@ static mlp_status_t on_batch_begin() {
   return MLP_STATUS_SUCCESS;
 }
 
-static mlp_status_t on_integration(const size_t sample_idx,
+static mlp_status_t on_integration(const std::size_t sample_idx,
                                    TrainingPack &pack) {
-  const size_t input_size = pack.input_size, output_size = pack.output_size,
-               total_size = pack.total_size;
-  for (size_t i = 0U; i < input_size; ++i) {
+  const std::size_t input_size = pack.input_size,
+                    output_size = pack.output_size,
+                    total_size = pack.total_size;
+  for (std::size_t i = 0U; i < input_size; ++i) {
     pack.input[i] = pack.data_set[sample_idx * total_size + i];
   }
-  for (size_t i = 0U; i < output_size; ++i) {
+  for (std::size_t i = 0U; i < output_size; ++i) {
     pack.answer[i] = pack.data_set[sample_idx * total_size + input_size + i];
   }
   status = mlp_forward(model, pack.input, pack.output, backward_buffer);
@@ -147,13 +148,13 @@ static mlp_status_t on_batch_begin_auto_encoder() {
 }
 
 static mlp_status_t
-on_integration_auto_encoder(const size_t sample_idx,
+on_integration_auto_encoder(const std::size_t sample_idx,
                             TrainingPackEncoderDecoder &pack) {
-  const size_t io_size = pack.io_size;
-  for (size_t i = 0U; i < io_size; ++i) {
+  const std::size_t io_size = pack.io_size;
+  for (std::size_t i = 0U; i < io_size; ++i) {
     pack.input[i] = pack.data_set[sample_idx * io_size + i];
   }
-  for (size_t i = 0U; i < io_size; ++i) {
+  for (std::size_t i = 0U; i < io_size; ++i) {
     pack.answer[i] = pack.data_set[sample_idx * io_size + i];
   }
   status = mlp_forward(model, pack.input, pack.middle, backward_buffer);
@@ -212,14 +213,14 @@ void tearDown() {
 }
 
 void test_mlp_xor() {
-  constexpr size_t layer_size_count = 4U;
-  constexpr size_t input_size = 2U, output_size = 1U;
-  constexpr size_t training_set_size = 4U;
-  constexpr size_t batch_size = 2U;
-  constexpr size_t total_size = input_size + output_size;
+  constexpr std::size_t layer_size_count = 4U;
+  constexpr std::size_t input_size = 2U, output_size = 1U;
+  constexpr std::size_t training_set_size = 4U;
+  constexpr std::size_t batch_size = 2U;
+  constexpr std::size_t total_size = input_size + output_size;
   float input[input_size], output[output_size], answer[output_size],
       gradient[output_size];
-  size_t sizes[layer_size_count] = {input_size, 4U, 4U, output_size};
+  std::size_t sizes[layer_size_count] = {input_size, 4U, 4U, output_size};
   mlp_layer_size_data_t size_data = {layer_size_count, sizes};
 
   float training_set[training_set_size][total_size] = {
@@ -259,10 +260,10 @@ void test_mlp_xor() {
 
   double init_loss = 0.0, tmp_loss;
   for (auto const &sample : training_set) {
-    for (size_t i = 0; i < input_size; ++i) {
+    for (std::size_t i = 0; i < input_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       answer[i] = sample[input_size + i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -278,10 +279,10 @@ void test_mlp_xor() {
   // assert
   double trained_loss = 0.0;
   for (auto const &sample : training_set) {
-    for (size_t i = 0; i < input_size; ++i) {
+    for (std::size_t i = 0; i < input_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       answer[i] = sample[input_size + i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -296,15 +297,15 @@ void test_mlp_xor() {
 }
 
 void test_mlp_noisy_regression() {
-  constexpr size_t layer_size_count = 4U;
-  constexpr size_t input_size = 1U, output_size = 1U;
-  constexpr size_t training_set_size = 300U;
-  constexpr size_t testing_set_size = 300U;
-  constexpr size_t batch_size = 16U;
-  constexpr size_t total_size = input_size + output_size;
+  constexpr std::size_t layer_size_count = 4U;
+  constexpr std::size_t input_size = 1U, output_size = 1U;
+  constexpr std::size_t training_set_size = 300U;
+  constexpr std::size_t testing_set_size = 300U;
+  constexpr std::size_t batch_size = 16U;
+  constexpr std::size_t total_size = input_size + output_size;
   float input[input_size], output[output_size], answer[output_size],
       gradient[output_size];
-  size_t sizes[layer_size_count] = {input_size, 16U, 16U, output_size};
+  std::size_t sizes[layer_size_count] = {input_size, 16U, 16U, output_size};
   mlp_layer_size_data_t size_data = {layer_size_count, sizes};
 
   float training_set[training_set_size][total_size] = {
@@ -546,10 +547,10 @@ void test_mlp_noisy_regression() {
 
   double init_loss = 0.0, tmp_loss = 0.0;
   for (auto const &sample : training_set) {
-    for (size_t i = 0; i < input_size; ++i) {
+    for (std::size_t i = 0; i < input_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       answer[i] = sample[input_size + i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -565,10 +566,10 @@ void test_mlp_noisy_regression() {
   // assert
   double trained_loss = 0.0;
   for (auto const &sample : testing_set) {
-    for (size_t i = 0; i < input_size; ++i) {
+    for (std::size_t i = 0; i < input_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       answer[i] = sample[input_size + i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
@@ -583,15 +584,16 @@ void test_mlp_noisy_regression() {
 }
 
 void test_mlp_spiral_ont_hot() {
-  constexpr size_t layer_size_count = 5U;
-  constexpr size_t input_size = 2U, output_size = 2U;
-  constexpr size_t training_set_size = 300U;
-  constexpr size_t testing_set_size = 300U;
-  constexpr size_t batch_size = 16U;
-  constexpr size_t total_size = input_size + output_size;
+  constexpr std::size_t layer_size_count = 5U;
+  constexpr std::size_t input_size = 2U, output_size = 2U;
+  constexpr std::size_t training_set_size = 300U;
+  constexpr std::size_t testing_set_size = 300U;
+  constexpr std::size_t batch_size = 16U;
+  constexpr std::size_t total_size = input_size + output_size;
   float input[input_size], output[output_size], answer[output_size],
       gradient[output_size];
-  size_t sizes[layer_size_count] = {input_size, 16U, 16U, 16U, output_size};
+  std::size_t sizes[layer_size_count] = {input_size, 16U, 16U, 16U,
+                                         output_size};
   mlp_layer_size_data_t size_data = {layer_size_count, sizes};
 
   float training_set[training_set_size][total_size] = {
@@ -929,15 +931,15 @@ void test_mlp_spiral_ont_hot() {
 
   double init_loss = 0.0, tmp_loss = 0.0;
   for (auto const &sample : testing_set) {
-    for (size_t j = 0; j < input_size; ++j) {
+    for (std::size_t j = 0; j < input_size; ++j) {
       input[j] = sample[j];
     }
-    for (size_t j = 0; j < output_size; ++j) {
+    for (std::size_t j = 0; j < output_size; ++j) {
       answer[j] = sample[input_size + j];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model, input, output, nullptr));
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       tmp_loss = output[i] - answer[i];
       init_loss += tmp_loss * tmp_loss;
     }
@@ -949,17 +951,17 @@ void test_mlp_spiral_ont_hot() {
 
   // assert
   double trained_loss = 0.0;
-  size_t correct_count = 0;
+  std::size_t correct_count = 0;
   for (auto const &sample : testing_set) {
-    for (size_t i = 0; i < input_size; ++i) {
+    for (std::size_t i = 0; i < input_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       answer[i] = sample[input_size + i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model, input, output, nullptr));
-    for (size_t i = 0; i < output_size; ++i) {
+    for (std::size_t i = 0; i < output_size; ++i) {
       tmp_loss = output[i] - answer[i];
       trained_loss += tmp_loss * tmp_loss;
     }
@@ -977,14 +979,14 @@ void test_mlp_spiral_ont_hot() {
 }
 
 void test_mlp_auto_encoder() {
-  constexpr size_t training_set_size = 8U;
-  constexpr size_t batch_size = 1U;
-  constexpr size_t layer_size_count = 3U;
-  constexpr size_t io_size = 8U, middle_size = 2U;
+  constexpr std::size_t training_set_size = 8U;
+  constexpr std::size_t batch_size = 1U;
+  constexpr std::size_t layer_size_count = 3U;
+  constexpr std::size_t io_size = 8U, middle_size = 2U;
   float input[io_size], middle[middle_size], output[io_size], answer[io_size],
       gradient[io_size], middle_gradient[middle_size];
-  size_t sizes[layer_size_count] = {io_size, 4U, middle_size};
-  size_t sizes_2[layer_size_count] = {middle_size, 4U, io_size};
+  std::size_t sizes[layer_size_count] = {io_size, 4U, middle_size};
+  std::size_t sizes_2[layer_size_count] = {middle_size, 4U, io_size};
   mlp_layer_size_data_t size_data = {layer_size_count, sizes};
   mlp_layer_size_data_t size_data_2 = {layer_size_count, sizes_2};
 
@@ -1048,17 +1050,17 @@ void test_mlp_auto_encoder() {
       on_update_msgd_auto_encoder};
   double init_loss = 0.0, tmp_loss = 0.0;
   for (auto &sample : training_set) {
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       answer[i] = sample[i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model, input, middle, nullptr));
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model_2, middle, output, nullptr));
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       tmp_loss = output[i] - answer[i];
       init_loss += tmp_loss * tmp_loss;
     }
@@ -1071,17 +1073,17 @@ void test_mlp_auto_encoder() {
   // assert
   double trained_loss = 0.0;
   for (auto &sample : training_set) {
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       input[i] = sample[i];
     }
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       answer[i] = sample[i];
     }
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model, input, middle, nullptr));
     TEST_ASSERT_EQUAL(MLP_STATUS_SUCCESS,
                       mlp_forward(model_2, middle, output, nullptr));
-    for (size_t i = 0; i < io_size; ++i) {
+    for (std::size_t i = 0; i < io_size; ++i) {
       tmp_loss = output[i] - answer[i];
       trained_loss += tmp_loss * tmp_loss;
     }

@@ -1,5 +1,13 @@
+enable_language(C)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_FLAGS "-Wall -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "-g -O1 -fsanitize=address -fno-omit-frame-pointer")
+
 add_executable(unit_test_mlp
-  unit/test_mlp.c
+  unit/test_mlp.cpp
   common/mlp_config.c
 )
 

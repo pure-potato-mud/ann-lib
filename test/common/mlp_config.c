@@ -11,8 +11,8 @@ struct mlp_layer_size_data size_data = {layer_size_count, layer_sizes};
 float learning_rate = 0.125f;
 float momentum = 0.875f;
 
-float one(void) { return 1.0f; }
-float neg_half(void) { return -0.5f; }
+float one() { return 1.0f; }
+float neg_half() { return -0.5f; }
 float leaky_relu(float value) { return (value > 0) ? value : value * 0.03125f; }
 float d_leaky_relu(float value) { return (value > 0) ? 1.0f : 0.03125f; }
 mlp_activation_t activation = {leaky_relu, d_leaky_relu};
