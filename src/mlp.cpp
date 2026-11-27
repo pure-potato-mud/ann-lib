@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdlib>
+#include <new>
 
 #include <internal/mlp.hpp>
 
@@ -79,14 +80,14 @@ struct mlp_double_layers *mlp_create_double_layers(
                                      elements);
     return nullptr;
   }
-  addr_offsets = ::new std::size_t[layer_full_size]();
+  addr_offsets = ::new (std::nothrow) std::size_t[layer_full_size]();
   if (addr_offsets == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
                                      elements);
     return nullptr;
   }
-  layers = ::new float *[layer_full_size]();
+  layers = ::new (std::nothrow) float *[layer_full_size]();
   if (layers == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -162,7 +163,7 @@ struct mlp_double_layers *mlp_create_double_layers(
                                      elements);
     return nullptr;
   }
-  elements = ::new float[offset_sum];
+  elements = ::new (std::nothrow) float[offset_sum];
   if (elements == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -184,7 +185,7 @@ struct mlp_double_layers *mlp_create_double_layers(
   }
 
   // return field_offsets
-  auto *ret = ::new struct mlp_double_layers();
+  auto *ret = ::new (std::nothrow) struct mlp_double_layers();
   if (ret == nullptr) {
     if (status != nullptr) { *status = MLP_STATUS_ALLOCATION_FAILED; }
     cleanup_mlp_create_double_layers(field_offsets_obj, addr_offsets, layers,
@@ -221,16 +222,16 @@ mlp_model_get_field_offsets(std::size_t layer_size_count) {
 
   const std::size_t data[] = {2U, layer_size_count + 1U, layer_full_size};
   const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
-  auto *copied_data = ::new std::size_t[data_size]();
+  auto *copied_data = ::new (std::nothrow) std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
   std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) {
-    ::delete (copied_data);
+    ::delete[] (copied_data);
     return nullptr;
   }
 
@@ -269,16 +270,16 @@ mlp_backward_buffer_get_field_offsets(std::size_t layer_size_count) {
 
   const std::size_t data[] = {2U, layer_size_count + 2U, layer_full_size};
   const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
-  auto *copied_data = ::new std::size_t[data_size]();
+  auto *copied_data = ::new (std::nothrow) std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
   std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) {
-    ::delete (copied_data);
+    ::delete[] (copied_data);
     return nullptr;
   }
 
@@ -311,16 +312,16 @@ mlp_gradient_buffer_get_field_offsets(std::size_t layer_size_count) {
 
   const std::size_t data[] = {layer_size_count - 1U, layer_full_size};
   const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
-  auto *copied_data = ::new std::size_t[data_size]();
+  auto *copied_data = ::new (std::nothrow) std::size_t[data_size]();
   if (copied_data == nullptr) { return nullptr; }
   std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) {
-    ::delete (copied_data);
+    ::delete[] (copied_data);
     return nullptr;
   }
 
@@ -357,16 +358,16 @@ mlp_msgd_buffer_get_field_offsets(std::size_t layer_size_count) {
 
   const std::size_t data[] = {layer_size_count - 1U, layer_full_size};
   const std::size_t data_size = sizeof(data) / sizeof(std::size_t);
-  auto *copied_data = ::new std::size_t[data_size];
+  auto *copied_data = ::new (std::nothrow) std::size_t[data_size];
   if (copied_data == nullptr) { return nullptr; }
   std::size_t i;
   for (i = 0; i < data_size; ++i) {
     copied_data[i] = data[i];
   }
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) {
-    ::delete (copied_data);
+    ::delete[] (copied_data);
     return nullptr;
   }
 
@@ -448,7 +449,7 @@ struct mlp_model *mlp_create_model(const struct mlp_layer_size_data *size_data,
   }
   float **layers = dl->layers;
 
-  auto *mlp = ::new struct mlp_model();
+  auto *mlp = ::new (std::nothrow) struct mlp_model();
   if (mlp == nullptr) {
     return (struct mlp_model *)mlp_dl_creation_cleanup(dl, status);
   }
@@ -500,7 +501,7 @@ mlp_create_backward_buffer(const struct mlp_layer_size_data *size_data,
   }
   float **layers = dl->layers;
 
-  auto *buffer = ::new struct mlp_backward_buffer();
+  auto *buffer = ::new (std::nothrow) struct mlp_backward_buffer();
   if (buffer == nullptr) {
     return (struct mlp_backward_buffer *)mlp_dl_creation_cleanup(dl, status);
   }
@@ -548,7 +549,7 @@ mlp_create_gradient_buffer(const struct mlp_layer_size_data *size_data,
   }
   float **layers = dl->layers;
 
-  auto *buffer = ::new struct mlp_gradient_buffer();
+  auto *buffer = ::new (std::nothrow) struct mlp_gradient_buffer();
   if (buffer == nullptr) {
     return (struct mlp_gradient_buffer *)mlp_dl_creation_cleanup(dl, status);
   }
@@ -594,7 +595,7 @@ mlp_create_msgd_buffer(const struct mlp_layer_size_data *size_data,
   }
   float **layers = dl->layers;
 
-  auto *buffer = ::new struct mlp_msgd_buffer();
+  auto *buffer = ::new (std::nothrow) struct mlp_msgd_buffer();
   if (buffer == nullptr) {
     return (struct mlp_msgd_buffer *)mlp_dl_creation_cleanup(dl, status);
   }

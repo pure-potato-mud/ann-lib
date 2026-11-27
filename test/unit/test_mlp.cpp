@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <new>
 
 extern "C" {
 #include <unity.h>
@@ -46,7 +47,7 @@ static struct mlp_field_offsets *
 test_mlp_get_zero_field(std::size_t layer_size_count) {
   (void)layer_size_count;
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) { return nullptr; }
 
   ret->field_offsets = nullptr;
@@ -59,7 +60,7 @@ static struct mlp_field_offsets *
 test_mlp_get_null_offsets(std::size_t layer_size_count) {
   (void)layer_size_count;
 
-  auto *ret = ::new struct mlp_field_offsets();
+  auto *ret = ::new (std::nothrow) struct mlp_field_offsets();
   if (ret == nullptr) { return nullptr; }
 
   ret->field_offsets = nullptr;
